@@ -10,7 +10,7 @@ It evaluates the speed (CPU cycles) and memory usage of the proposed SDA-CDT sam
 
 - Optimized Implementation:
 
-    - ses XorShift128+ for fast random number generation.
+    - uses XorShift128+ for fast random number generation.
 
     - Implements Lemire's algorithm for fast uniform sampling (avoiding expensive modulo divisions).
 
