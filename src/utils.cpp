@@ -52,9 +52,7 @@ uint32_t fast_uniform_bound(FastRNG& rng, uint32_t range) {
 // Lemire's Method (128-bit / Rejection for Falcon)
 uint128_t fast_uniform_bound_128(FastRNG& rng, uint128_t range) {
     uint128_t x;
-    // Falcon q is ~72 bits. We can optimize by masking high bits to increase acceptance rate.
-    // 2^73 - 1 mask
-    uint128_t mask = ((uint128_t)1 << 73) - 1;
+    uint128_t mask = ((uint128_t)1 << 72) - 1;
     do {
         x = rng.next128() & mask;
     } while (x >= range);

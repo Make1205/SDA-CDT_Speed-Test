@@ -4,9 +4,28 @@
 #include "utils.hpp"
 
 // ==========================================
-// Standard Sampler
+// 1. Kyber CBD Algorithmic Sampler (Baseline)
 // ==========================================
-template <typename T>
+// 代码无误，保持原样
+template <int Eta>
+struct CBDSampler {
+    FastRNG rng;
+    __attribute__((always_inline)) int sample() {
+        uint32_t t = rng.next() & 0xFFFFFFFF; 
+        int x = 0;
+        for(int i=0; i < Eta; i++) {
+            int a = (t >> (2*i)) & 1;
+            int b = (t >> (2*i+1)) & 1;
+            x += (a - b);
+        }
+        return x;
+    }
+};
+
+// ==========================================
+// 2. Standard Sampler (用于 Frodo/Falcon 对比)
+// ==========================================
+template <typename T, size_t N>
 struct StandardSampler {
     const std::vector<T>& table;
     T mask;
@@ -22,7 +41,7 @@ struct StandardSampler {
 
     __attribute__((always_inline)) int sample() {
         T u;
-        uint64_t rand_bits; // Used for sign
+        uint64_t rand_bits; 
         
         if constexpr (std::is_same<T, uint128_t>::value) {
             uint128_t r = rng.next128();
@@ -33,19 +52,19 @@ struct StandardSampler {
             u = (T)rand_bits & mask;
         }
         
-        int x = -1;
+        // [修正] 初始化改为 0，配合 u >= val 逻辑
+        int x = 0; 
         for (const auto& val : table) {
-            x += (u < val);
+            x += (u >= val);
         }
-        
         return (rand_bits >> 63) ? -x : x;
     }
 };
 
 // ==========================================
-// SDA Sampler
+// 3. SDA Sampler (通用)
 // ==========================================
-template <typename T>
+template <typename T, size_t N>
 struct SDASampler {
     const std::vector<T>& table;
     T q;
@@ -53,7 +72,6 @@ struct SDASampler {
     FastRNG rng;
 
     SDASampler(const std::vector<T>& t, T _q) : table(t), q(_q) {
-        
         if constexpr (std::is_same<T, uint128_t>::value) {
             int bits = 0;
             T temp = q;
@@ -68,25 +86,18 @@ struct SDASampler {
         T u;
         uint64_t sign_bit = 0;
 
-
         if constexpr (std::is_same<T, uint128_t>::value) {
-            
-            
+            // Falcon: 128-bit Rejection
             while (true) {
                 uint128_t r = rng.next128(); 
                 u = r & mask;                
-                
-                // 检查是否在范围内
                 if (u < q) {
-                    
                     sign_bit = (uint64_t)(r >> 64); 
                     break; 
                 }
-                
             }
-        } 
-
-        else {
+        } else {
+            // Frodo/CBD: Lemire's Method
             uint64_t rand_val = rng.next();
             uint32_t r_in = (uint32_t)rand_val; 
             uint64_t m = r_in * (uint64_t)q;
@@ -96,18 +107,20 @@ struct SDASampler {
                 uint32_t t = -q;
                 if (t >= q) { t -= q; if (t >= q) t %= q; }
                 while (l < t) {
-                    r_in = rng.next() & 0xFFFFFFFF;
+                    rand_val = rng.next(); // [Correct] Refresh entropy
+                    r_in = (uint32_t)rand_val;
                     m = r_in * (uint64_t)q;
                     l = (uint32_t)m;
                 }
             }
             u = m >> 32;
-            sign_bit = rand_val;
+            sign_bit = rand_val; // [Correct] Use fresh sign bit
         }
 
-        int x = -1;
+        // [修正] 初始化改为 0，配合 u >= val 逻辑
+        int x = 0;
         for (const auto& val : table) {
-            x += (u < val);
+            x += (u >= val);
         }
         
         return (sign_bit >> 63) ? -x : x;
