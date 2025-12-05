@@ -56,7 +56,7 @@ int main() {
     std::cout << "=== SDA-CDT Benchmark: Real Paper Data ===\n\n";
 
     // =========================================================
-    // 1. Frodo Data (Source: Table 6 [cite: 606])
+    // 1. Frodo Data (Source: Table 6)
     // =========================================================
     // Frodo-640
     std::vector<uint16_t> f640_std = {4643, 13363, 20579, 25843, 29227, 31145, 32103, 32525, 32689, 32745, 32762, 32766, 32767};
@@ -75,7 +75,7 @@ int main() {
     run_comparison("Frodo-1344", f1344_std, 15, f1344_sda, (uint16_t)102);
 
     // =========================================================
-    // 2. Falcon Data (Source: Table 4 [cite: 600, 601])
+    // 2. Falcon Data (Source: Table 4)
     // =========================================================
     // Data transcribed directly from strings in your paper
     
