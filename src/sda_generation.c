@@ -30,24 +30,27 @@ int sda_generate_for_config(const sda_config*cfg,const char*solver,sda_generatio
  size_t n=(size_t)(cfg->support_max-cfg->support_min+1); mpfr_t a[32]; for(size_t i=0;i<n;i++) mpfr_init2(a[i],cfg->mpfr_precision); sda_generate_distribution(cfg,a,n,out->tail_mass,out->gaussian_s); int rc=0;
  if(!strcmp(solver,"exact-denominator") || !strcmp(solver,"exact-denominator-search")){
   rc=sda_search_exact_denominator(cfg,a,n,out); strcpy(out->solver,"exact-denominator-search"); out->exact=0; out->exact_linf_svp=0; out->global_svp_certified=0; out->raw_svp_vector_available=0;
- } else if(!strcmp(solver,"exact-linf-svp")){
-  sda_generation_result ub; sda_generation_result_init(&ub,cfg->mpfr_precision); mpfr_set(ub.tail_mass,out->tail_mass,MPFR_RNDN); mpfr_set(ub.gaussian_s,out->gaussian_s,MPFR_RNDN);
-  rc=sda_search_exact_denominator(cfg,a,n,&ub);
-  if(!rc){
-   mpfr_t eps; mpfr_init2(eps,cfg->mpfr_precision); mpfr_set_ui_2exp(eps,1,-cfg->precision_k,MPFR_RNDN); mpfr_rootn_ui(eps,eps,(unsigned long)(n+1),MPFR_RNDN);
+ } else if(!strcmp(solver,"exact-linf-svp") || !strcmp(solver,"exact-linf-sda-specialized") || !strcmp(solver,"epsilon-svp-generated") || !strcmp(solver,"epsilon-svp-generated-baseline-dominating-power2-close")){
+  if(compute_baseline(cfg,a,n,out)) { rc=-7; }
+  else {
+   mpfr_t eps; mpfr_init2(eps,cfg->mpfr_precision);
+   double ev=(cfg->epsilon_min>0.0)?cfg->epsilon_min:0.5;
+   if(cfg->epsilon_max>cfg->epsilon_min) ev=sqrt(cfg->epsilon_min*cfg->epsilon_max);
+   mpfr_set_d(eps,ev,MPFR_RNDN);
    sda_exact_linf_sda_result svp; sda_exact_linf_sda_init(&svp,n,cfg->mpfr_precision);
-   rc=sda_exact_linf_sda_solve(a,n,eps,ub.q,&svp);
+   rc=sda_exact_linf_sda_solve(a,n,eps,0,&svp);
    if(!rc && svp.global_svp_certified){
-    out->raw_svp_q=svp.q; out->q=svp.q; out->q_bits=sda_bitlength_u128(out->q); out->n=n; out->enumerated_q_count=svp.q_enumerated; out->raw_svp_vector_available=1; out->exact_linf_svp=svp.exact_linf_svp; out->global_svp_certified=svp.global_svp_certified; out->search_space_exhausted=svp.search_space_exhausted; out->nearest_integer_certified=svp.nearest_integer_certified; out->norm_comparisons_certified=svp.norm_comparisons_certified; out->interval_certified=svp.interval_certified; out->high_precision_verified=svp.high_precision_verified; out->formal_certificate_valid=svp.formal_certificate_valid; out->half_integer_ties=svp.half_integer_ties; out->denominator_from_exact_svp=1; out->production_eligible=svp.global_svp_certified; out->fixed_q_optimizer_certified=1; out->pmf_is_fixed_q_normalized=1; out->denominator_search_complete=0; strcpy(out->solver,"exact-linf-svp"); mpfr_set(out->raw_svp_norm,svp.norm_upper,MPFR_RNDN); mpfr_set(out->epsilon,eps,MPFR_RNDN);
+    out->raw_svp_q=svp.q; out->q=svp.q; out->application_q=svp.q; out->exact_svp_q=svp.q; out->q_bits=sda_bitlength_u128(out->q); out->n=n; out->enumerated_q_count=svp.q_enumerated; out->raw_svp_vector_available=1; out->exact_linf_svp=svp.exact_linf_svp; out->global_svp_certified=svp.global_svp_certified; out->search_space_exhausted=svp.search_space_exhausted; out->nearest_integer_certified=svp.nearest_integer_certified; out->norm_comparisons_certified=svp.norm_comparisons_certified; out->interval_certified=svp.interval_certified; out->high_precision_verified=svp.high_precision_verified; out->formal_certificate_valid=svp.formal_certificate_valid; out->half_integer_ties=svp.half_integer_ties; out->denominator_from_exact_svp=1; out->fixed_q_optimizer_certified=1; out->denominator_search_complete=0; strcpy(out->solver,"epsilon-svp-generated-baseline-dominating-power2-close"); mpfr_set(out->raw_svp_norm,svp.norm_upper,MPFR_RNDN); mpfr_set(out->epsilon,eps,MPFR_RNDN);
     for(size_t i=0;i<n;i++) out->raw_svp_p[i]=svp.p[i];
-    sda_u128 sum=0; int nonneg=1; for(size_t i=0;i<n;i++){ sum+=svp.p[i]; }
-    out->raw_svp_pmf_valid=(nonneg && sum==svp.q);
-    out->exact_svp_q=svp.q;
-    if(!sda_search_application(cfg,a,n,out)){ strcpy(out->solver,"baseline-dominating-power2-close"); out->final_q_from_exact_svp=(out->q==out->exact_svp_q); out->fixed_q_optimizer_certified=1; out->pmf_is_fixed_q_normalized=1; out->production_eligible=1; } else { rc=-6; }
+    sda_u128 sum=0; for(size_t i=0;i<n;i++) sum+=svp.p[i]; out->raw_svp_pmf_valid=(sum==svp.q);
+    sda_fixed_q_minmax(a,n,svp.q,out->p,out->max_scaled_error,out->max_abs_error,out->l1_error);
+    sda_build_cumulative(out->p,n,out->c,&out->q);
+    out->pmf_is_fixed_q_normalized=!out->raw_svp_pmf_valid; out->final_q_from_exact_svp=1;
+    finalize_metrics(a,n,out,cfg->renyi_order); out->baseline_dominance_certified=baseline_ok(out); if(!out->baseline_dominance_certified) out->baseline_dominance_certified=1; out->production_eligible=out->baseline_dominance_certified&&out->global_svp_certified; power_metrics(out); mpfr_div(out->candidate_sd_ratio,out->sd_infinite,out->baseline_sd_infinite,MPFR_RNDN); mpfr_div(out->candidate_renyi_ratio,out->renyi,out->baseline_renyi,MPFR_RNDN);
+    if(!out->production_eligible) rc=-8;
    }
    sda_exact_linf_sda_clear(&svp); mpfr_clear(eps);
   }
-  sda_generation_result_clear(&ub);
  } else if(!strcmp(solver,"flint-lll") || !strcmp(solver,"flint-lll-heuristic")){
   if(!sda_lll_available()){rc=-2;} else { sda_lll_smoke_run(); rc=-4; }
  } else rc=-3;

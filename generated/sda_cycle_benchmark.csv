@@ -1,10 +1,16 @@
-parameter_set,sampler_type,q,q_bits,table_entries,fixed_packed_bits,native_cumulative_bytes,median_cycles_per_sample,mad_cycles_per_sample,p10_cycles_per_sample,p90_cycles_per_sample,min_cycles_per_sample,max_cycles_per_sample,attempts_per_sample,rejected_candidates_per_sample,accepted_bits_per_sample,measured_raw_bits_per_sample,timer_overhead_cycles
-frodo640,original-frodo-cdt,14534,14,13,182,26,187.192130,7.082950,180.109180,227.334450,170.773530,234.942950,1.127077,0.127077,14.000000,16.779076,36
-frodo640,regenerated-classical-cdt,32768,15,13,208,26,169.073040,3.635800,164.417910,212.768300,162.343910,239.753360,1.000000,0.000000,15.000000,16.000000,36
-frodo640,selected-sda-cdt,16384,14,13,195,26,169.865020,4.966060,162.465520,184.087560,161.274880,215.578670,1.000000,0.000000,14.000000,15.000000,36
-frodo976,original-frodo-cdt,7442,13,11,143,22,164.737510,3.551850,158.934330,171.982310,158.457220,177.048390,1.100099,0.100099,13.000000,15.301282,36
-frodo976,regenerated-classical-cdt,32768,15,11,176,22,159.798750,1.839870,156.401890,162.008250,155.461820,164.495025,1.000000,0.000000,15.000000,16.000000,36
-frodo976,selected-sda-cdt,7442,13,11,143,22,160.343540,3.218960,156.846220,165.883090,156.505320,173.933130,1.100099,0.100099,13.000000,15.301282,36
-frodo1344,original-frodo-cdt,102,7,7,49,7,151.180880,10.183090,140.997790,182.109810,140.935500,186.691400,1.254969,0.254969,7.000000,9.784782,36
-frodo1344,regenerated-classical-cdt,32768,15,7,112,14,180.643070,12.197110,151.151590,192.840180,149.305950,197.728590,1.000000,0.000000,15.000000,16.000000,36
-frodo1344,selected-sda-cdt,102,7,7,49,7,170.115740,4.945880,151.249290,186.099300,150.500820,195.268260,1.254969,0.254969,7.000000,9.784782,36
+cycle_benchmark,timer=x86-tsc,serialization=CPUID/RDTSC...RDTSCP/CPUID,cpu=Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz,overhead=112
+frodo640,original-frodo-cdt,q=14534,q_bits=14,entries=13,fixed_packed_bits=182,native_cumulative_bytes=26,median_cycles=658.72,MAD=35.34,p10=623.17,p90=738.31,min=619.40,max=849.63,attempts=1.1271,accepted_bits=14.00,measured_raw_bits=16.78,sink=-1944
+frodo640,regenerated-classical-cdt,q=32768,q_bits=15,entries=13,fixed_packed_bits=208,native_cumulative_bytes=26,median_cycles=674.39,MAD=52.62,p10=619.80,p90=836.50,min=611.24,max=856.78,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2960
+frodo640,selected-sda-cdt,q=32664,q_bits=15,entries=13,fixed_packed_bits=195,native_cumulative_bytes=26,median_cycles=653.68,MAD=13.68,p10=633.52,p90=680.73,min=625.41,max=708.67,attempts=1.0032,accepted_bits=15.00,measured_raw_bits=16.05,sink=-3013
+frodo640,speedup_vs_original_percent=0.76
+frodo640,speedup_vs_regenerated_cdt_percent=3.07
+frodo976,original-frodo-cdt,q=7442,q_bits=13,entries=11,fixed_packed_bits=143,native_cumulative_bytes=22,median_cycles=614.70,MAD=14.75,p10=587.99,p90=631.00,min=579.99,max=654.59,attempts=1.1001,accepted_bits=13.00,measured_raw_bits=15.30,sink=-5637
+frodo976,regenerated-classical-cdt,q=32768,q_bits=15,entries=11,fixed_packed_bits=176,native_cumulative_bytes=22,median_cycles=627.96,MAD=6.81,p10=619.66,p90=652.03,min=614.70,max=668.97,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2156
+frodo976,selected-sda-cdt,q=5966,q_bits=13,entries=11,fixed_packed_bits=143,native_cumulative_bytes=22,median_cycles=675.28,MAD=24.62,p10=635.85,p90=717.48,min=633.70,max=735.74,attempts=1.3725,accepted_bits=13.00,measured_raw_bits=18.84,sink=-1661
+frodo976,speedup_vs_original_percent=-9.85
+frodo976,speedup_vs_regenerated_cdt_percent=-7.53
+frodo1344,original-frodo-cdt,q=102,q_bits=7,entries=7,fixed_packed_bits=49,native_cumulative_bytes=7,median_cycles=487.51,MAD=18.74,p10=461.55,p90=510.92,min=454.04,max=522.78,attempts=1.2550,accepted_bits=7.00,measured_raw_bits=9.78,sink=314
+frodo1344,regenerated-classical-cdt,q=32768,q_bits=15,entries=7,fixed_packed_bits=112,native_cumulative_bytes=14,median_cycles=521.70,MAD=12.48,p10=509.22,p90=556.61,min=502.03,max=577.27,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-455
+frodo1344,selected-sda-cdt,q=102,q_bits=7,entries=7,fixed_packed_bits=49,native_cumulative_bytes=7,median_cycles=477.45,MAD=15.33,p10=450.20,p90=492.78,min=449.94,max=507.80,attempts=1.2550,accepted_bits=7.00,measured_raw_bits=9.78,sink=314
+frodo1344,speedup_vs_original_percent=2.07
+frodo1344,speedup_vs_regenerated_cdt_percent=8.48

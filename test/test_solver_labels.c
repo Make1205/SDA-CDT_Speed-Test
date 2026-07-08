@@ -7,8 +7,8 @@ int main(void){
       if(t->exact || t->heuristic || t->target_q_mode) return 1;
     } else if(!strcmp(t->solver_mode,"exact-linf-svp")){
       if(!t->exact || t->heuristic || t->target_q_mode) return 2;
-    } else if(!strcmp(t->solver_mode,"baseline-dominating-power2-close")){
-      if(t->exact || t->heuristic || t->target_q_mode) return 3;
+    } else if(!strcmp(t->solver_mode,"epsilon-svp-generated-baseline-dominating-power2-close")){
+      if(!t->exact || t->heuristic || t->target_q_mode) return 3;
     } else return 4;
   }
   return 0;

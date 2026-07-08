@@ -14,7 +14,7 @@ typedef struct {
   int exact,heuristic,source_is_fixture;
   int denominator_search_complete,fixed_q_optimizer_certified,exact_linf_svp,global_svp_certified,raw_svp_vector_available,raw_svp_pmf_valid,pmf_is_fixed_q_normalized,production_eligible,denominator_from_exact_svp;
   int search_space_exhausted,nearest_integer_certified,norm_comparisons_certified,interval_certified,high_precision_verified,formal_certificate_valid; unsigned long long half_integer_ties;
-  char solver[32];
+  char solver[80];
 } sda_generation_result;
 void sda_generation_result_init(sda_generation_result *r, mpfr_prec_t prec);
 void sda_generation_result_clear(sda_generation_result *r);
