@@ -1,0 +1,2 @@
+#include "sda_table.h"
+int main(void){ if(sda_table_width_for_q(255)!=SDA_WIDTH_U8) return 1; if(sda_table_width_for_q(256)!=SDA_WIDTH_U16) return 2; if(sda_table_width_for_q(32768)!=SDA_WIDTH_U16) return 3; if(sda_table_width_for_q(65535)!=SDA_WIDTH_U16) return 4; if(sda_table_width_for_q(65536)!=SDA_WIDTH_U32) return 5; if(sda_table_width_for_q(((sda_u128)1)<<32)!=SDA_WIDTH_U64) return 6; if(sda_table_width_for_q(((sda_u128)1)<<64)!=SDA_WIDTH_U128) return 7; return 0; }

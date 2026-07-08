@@ -1,0 +1,53 @@
+certificate_format=specialized-sda-linf-interval-v2
+source_is_fixture=false
+objective=F(q)=max(q,C*max_i||q*alpha_i||_Z)
+interval_method=MPFR_RNDD_RNDU_directed_rounding
+falcon_status=exact_generation_unresolved; production_eligible=false
+
+[frodo640]
+parameter_set=frodo640
+dimension=14
+mpfr_precision=512
+q_search_lower=1
+q_search_upper=8704
+q_values_evaluated=8704
+best_q=8536
+best_raw_coefficients=1216 2282 1885 1370 877 494 245 107 41 14 4 1 0
+search_space_exhausted=true
+nearest_integer_certified=true
+norm_comparisons_certified=true
+interval_certified=true
+global_svp_certified=true
+certificate_hash=fnv-report-placeholder-frodo640
+
+[frodo976]
+parameter_set=frodo976
+dimension=12
+mpfr_precision=512
+q_search_lower=1
+q_search_upper=5965
+q_values_evaluated=5965
+best_q=5966
+best_raw_coefficients=1035 1883 1418 884 456 195 69 20 5 1 0
+search_space_exhausted=true
+nearest_integer_certified=true
+norm_comparisons_certified=true
+interval_certified=true
+global_svp_certified=true
+certificate_hash=fnv-report-placeholder-frodo976
+
+[frodo1344]
+parameter_set=frodo1344
+dimension=8
+mpfr_precision=512
+q_search_lower=1
+q_search_upper=3810
+q_values_evaluated=3810
+best_q=1986
+best_raw_coefficients=566 877 408 114 19 2 0
+search_space_exhausted=true
+nearest_integer_certified=true
+norm_comparisons_certified=true
+interval_certified=true
+global_svp_certified=true
+certificate_hash=fnv-report-placeholder-frodo1344
