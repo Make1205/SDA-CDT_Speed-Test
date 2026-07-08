@@ -1,0 +1,4 @@
+certificate_format=specialized-sda-linf-v1
+source_is_fixture=false
+
+See generated/sda_generation_report.txt for each table's raw_svp_q, raw_svp_norm, exact_linf_svp, global_svp_certified, and enumerated_q_count. The certificate consists of exhaustive positive-q enumeration below the recorded best norm for the SDA-specialized objective F(q)=max(q,C*max_i||q*alpha_i||_Z).

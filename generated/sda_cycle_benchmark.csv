@@ -1,4 +1,7 @@
 parameter_set,sampler_type,median_cycles_per_sample
-frodo640,sda-cdt,194.565570
-frodo976,sda-cdt,169.296500
-frodo1344,sda-cdt,166.119290
+frodo640,classical-cdt,169.595480
+frodo640,sda-cdt,241.004640
+frodo976,classical-cdt,168.631170
+frodo976,sda-cdt,198.241420
+frodo1344,classical-cdt,166.427900
+frodo1344,sda-cdt,151.909860

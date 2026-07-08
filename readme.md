@@ -90,19 +90,12 @@ Rényi divergence is evaluated in the main direction `D_SDA || D_target`: zero S
 
 Cycle benchmarks use `sda_cycles_start()`/`sda_cycles_stop()` with CPUID/RDTSC and RDTSCP/CPUID serialization on x86. The benchmark pins to logical CPU 0 when the OS permits it, reports timestamp overhead, and writes `generated/sda_cycle_benchmark.csv`. Classical CDT rows are not emitted until the generator writes real classical CDT tables; speedup is reported as unavailable rather than using a placeholder.
 
-## Current solver metadata and unresolved exact-SVP work
+## Specialized SDA exact-linf-SVP path
 
-The generated Frodo production tables in this repository are currently produced by `exact-denominator-search`: an exhaustive scan of `q = 1..2^k-1` with exact fixed-`q` normalization. They are **not** certified results of the SDA lattice `exact-linf-svp` solver. Generated metadata therefore uses:
+This snapshot adds a specialized SDA `exact-linf-svp` path for Frodo-sized supports. For the SDA basis `B = [[C I, -C alpha], [0, 1]]`, fixed `q` separates across coordinates: each raw SVP coefficient `p_i` is the nearest integer to `q alpha_i`, and the candidate norm is `max(q, C max_i ||q alpha_i||_Z)`. The solver therefore enumerates positive `q` below the current best certified upper bound and records `raw_svp_q`, `raw_svp_norm`, `raw_svp_pmf_valid`, `exact_linf_svp`, `global_svp_certified`, and `enumerated_q_count` in the generated report.
 
-- `solver = exact-denominator-search`
-- `denominator_search_exact = true`
-- `fixed_q_normalization_exact = true`
-- `exact_linf_svp = false`
-- `global_svp_certified = false`
-- `lattice_solver_used = false`
+The raw SVP vector is kept separate from the online probability table. The generated SDA-CDT table uses the certified SVP denominator and then applies `fixed-q-minmax` normalization when needed; this is recorded with `pmf_is_fixed_q_normalized=true` and must not be described as the raw SVP vector. Falcon exact certification remains unresolved and is not included in the production header.
 
-The `exact-linf-svp` production path is intentionally unresolved in this snapshot; commands that require full exact certification for all parameter sets fail when Falcon cannot be certified. `generate_sdat --all --require-exact` returns exit code `3` and prints `Falcon exact generation unresolved`. Use `generate_sdat --all-available --require-exact --reproducible` to write only the currently available Frodo tables; that mode returns exit code `2` for partial success.
+`generate_sdat --all-available --require-certified-linf-svp --reproducible` writes the currently certified Frodo tables and returns partial-success exit code 2 because Falcon is unresolved. `generate_classical_cdt --all --reproducible` regenerates the matching classical CDT baseline from the same conditioned-support target distribution with denominator `2^k`.
 
-Metrics now distinguish `tail_mass`, `sd_support = Delta(D_S,D_SDA)`, and `sd_infinite = Delta(D_infinity,D_SDA)`. Rényi divergence fields are informational for Frodo unless `renyi_hard_constraint=true` is provided by a configuration and satisfied by the generator.
-
-The sampling benchmark does not emit placeholder speedups. Until a generated classical CDT table is emitted alongside every SDA-CDT table, benchmark output marks `classical-cdt` speedup as unavailable.
+Note: Frodo generated headers still use the existing `sda_u128` storage path in this snapshot, so native byte counts are conservative for Frodo. The fixed packed bit counts remain `N * ceil(log2(q))`; true minimal native-width arrays are still pending.

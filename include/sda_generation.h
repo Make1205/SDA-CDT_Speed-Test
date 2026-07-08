@@ -4,7 +4,15 @@
 #include <mpfr.h>
 #include "sda_config.h"
 #include "sda_table.h"
-typedef struct { sda_u128 q; sda_u128 p[32]; sda_u128 c[32]; size_t n; int q_bits; mpfr_t max_scaled_error,max_abs_error,l1_error,sd_support,sd_infinite,tail_mass,renyi,renyi_minus_one,log2_sd,log2_renyi_minus_one,gaussian_s; unsigned long denominators_scanned; double generation_time; int exact,heuristic,source_is_fixture; char solver[32]; } sda_generation_result;
+typedef struct {
+  sda_u128 q,p[32],c[32]; size_t n; int q_bits;
+  sda_u128 raw_svp_q,raw_svp_p[32];
+  mpfr_t max_scaled_error,max_abs_error,l1_error,sd_support,sd_infinite,tail_mass,renyi,renyi_minus_one,log2_sd,log2_renyi_minus_one,gaussian_s,raw_svp_norm,epsilon;
+  unsigned long denominators_scanned; unsigned long long enumerated_q_count; double generation_time;
+  int exact,heuristic,source_is_fixture;
+  int denominator_search_complete,fixed_q_optimizer_certified,exact_linf_svp,global_svp_certified,raw_svp_vector_available,raw_svp_pmf_valid,pmf_is_fixed_q_normalized,production_eligible,denominator_from_exact_svp;
+  char solver[32];
+} sda_generation_result;
 void sda_generation_result_init(sda_generation_result *r, mpfr_prec_t prec);
 void sda_generation_result_clear(sda_generation_result *r);
 int sda_generate_distribution(const sda_config *cfg, mpfr_t *alpha, size_t n, mpfr_t tail_mass, mpfr_t gaussian_s);
