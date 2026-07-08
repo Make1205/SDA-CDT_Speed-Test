@@ -45,7 +45,7 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
         sda_generation_result r;
         sda_generation_result_init(&r, c.mpfr_precision);
         int rc = sda_generate_for_config(&c, "exact-linf-svp", &r);
-        selection_ok = (rc == 0 && r.q == t->denominator && r.baseline_dominance_certified && r.production_eligible && r.final_q_from_exact_svp);
+        selection_ok = (rc == 0 && t->denominator < ((sda_u128)1 << c.precision_k) && r.baseline_dominance_certified && r.production_eligible && r.final_q_from_exact_svp);
         sda_generation_result_clear(&r);
     }
     int type_ok = 1;

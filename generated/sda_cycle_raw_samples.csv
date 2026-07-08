@@ -1,16 +1,16 @@
-cycle_benchmark,timer=x86-tsc,serialization=CPUID/RDTSC...RDTSCP/CPUID,cpu=Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz,overhead=108
-frodo640,original-frodo-cdt,q=14534,q_bits=14,entries=13,fixed_packed_bits=182,native_cumulative_bytes=26,median_cycles=648.75,MAD=9.83,p10=639.13,p90=735.61,min=638.92,max=741.44,attempts=1.1271,accepted_bits=14.00,measured_raw_bits=16.78,sink=-1944
-frodo640,regenerated-classical-cdt,q=32768,q_bits=15,entries=13,fixed_packed_bits=208,native_cumulative_bytes=26,median_cycles=631.10,MAD=20.19,p10=610.91,p90=669.94,min=609.50,max=705.94,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2960
-frodo640,selected-sda-cdt,q=749892,q_bits=20,entries=13,fixed_packed_bits=260,native_cumulative_bytes=52,median_cycles=746.29,MAD=9.96,p10=736.32,p90=781.16,min=733.96,max=923.18,attempts=1.3980,accepted_bits=20.00,measured_raw_bits=28.96,sink=-6638
-frodo640,speedup_vs_original_percent=-15.03
-frodo640,speedup_vs_regenerated_cdt_percent=-18.25
-frodo976,original-frodo-cdt,q=7442,q_bits=13,entries=11,fixed_packed_bits=143,native_cumulative_bytes=22,median_cycles=586.67,MAD=2.78,p10=579.71,p90=595.34,min=579.31,max=597.91,attempts=1.1001,accepted_bits=13.00,measured_raw_bits=15.30,sink=-5637
-frodo976,regenerated-classical-cdt,q=32768,q_bits=15,entries=11,fixed_packed_bits=176,native_cumulative_bytes=22,median_cycles=591.70,MAD=6.35,p10=579.12,p90=598.24,min=576.44,max=641.88,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2156
-frodo976,selected-sda-cdt,q=115956,q_bits=17,entries=11,fixed_packed_bits=187,native_cumulative_bytes=44,median_cycles=638.74,MAD=5.52,p10=630.73,p90=644.26,min=627.51,max=645.05,attempts=1.1302,accepted_bits=17.00,measured_raw_bits=20.21,sink=635
-frodo976,speedup_vs_original_percent=-8.87
-frodo976,speedup_vs_regenerated_cdt_percent=-7.95
-frodo1344,original-frodo-cdt,q=102,q_bits=7,entries=7,fixed_packed_bits=49,native_cumulative_bytes=7,median_cycles=451.48,MAD=5.12,p10=444.11,p90=463.60,min=443.71,max=474.13,attempts=1.2550,accepted_bits=7.00,measured_raw_bits=9.78,sink=314
-frodo1344,regenerated-classical-cdt,q=32768,q_bits=15,entries=7,fixed_packed_bits=112,native_cumulative_bytes=14,median_cycles=507.91,MAD=3.48,p10=497.20,p90=523.53,min=496.44,max=526.47,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-455
-frodo1344,selected-sda-cdt,q=1046,q_bits=11,entries=7,fixed_packed_bits=77,native_cumulative_bytes=14,median_cycles=608.80,MAD=5.19,p10=603.05,p90=623.77,min=601.66,max=670.13,attempts=1.9584,accepted_bits=11.00,measured_raw_bits=22.54,sink=1719
-frodo1344,speedup_vs_original_percent=-34.85
-frodo1344,speedup_vs_regenerated_cdt_percent=-19.86
+cycle_benchmark,timer=x86-tsc,serialization=CPUID/RDTSC...RDTSCP/CPUID,cpu=Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz,overhead=112
+frodo640,original-frodo-cdt,q=32768,q_bits=15,entries=13,fixed_packed_bits=208,native_cumulative_bytes=26,median_cycles=641.09,MAD=20.47,p10=618.78,p90=718.01,min=617.89,max=720.52,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2960
+frodo640,regenerated-classical-cdt,q=32768,q_bits=15,entries=13,fixed_packed_bits=208,native_cumulative_bytes=26,median_cycles=619.98,MAD=8.45,p10=605.67,p90=628.43,min=603.41,max=676.72,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2960
+frodo640,selected-sda-cdt,q=8536,q_bits=14,entries=13,fixed_packed_bits=182,native_cumulative_bytes=26,median_cycles=743.54,MAD=6.12,p10=729.67,p90=792.27,min=724.83,max=796.97,attempts=1.9196,accepted_bits=14.00,measured_raw_bits=27.87,sink=-4926
+frodo640,speedup_vs_original_percent=-15.98
+frodo640,speedup_vs_regenerated_cdt_percent=-19.93
+frodo976,original-frodo-cdt,q=32768,q_bits=15,entries=11,fixed_packed_bits=176,native_cumulative_bytes=22,median_cycles=604.93,MAD=12.11,p10=584.70,p90=634.18,min=580.79,max=638.76,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2156
+frodo976,regenerated-classical-cdt,q=32768,q_bits=15,entries=11,fixed_packed_bits=176,native_cumulative_bytes=22,median_cycles=602.19,MAD=17.19,p10=582.05,p90=628.78,min=577.23,max=650.04,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-2156
+frodo976,selected-sda-cdt,q=278,q_bits=9,entries=11,fixed_packed_bits=99,native_cumulative_bytes=22,median_cycles=662.86,MAD=9.51,p10=649.45,p90=675.83,min=647.20,max=679.06,attempts=1.8422,accepted_bits=9.00,measured_raw_bits=17.58,sink=3740
+frodo976,speedup_vs_original_percent=-9.58
+frodo976,speedup_vs_regenerated_cdt_percent=-10.07
+frodo1344,original-frodo-cdt,q=32768,q_bits=15,entries=7,fixed_packed_bits=112,native_cumulative_bytes=14,median_cycles=514.69,MAD=6.16,p10=505.85,p90=521.79,min=500.01,max=538.95,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-455
+frodo1344,regenerated-classical-cdt,q=32768,q_bits=15,entries=7,fixed_packed_bits=112,native_cumulative_bytes=14,median_cycles=507.87,MAD=4.46,p10=502.18,p90=514.98,min=502.14,max=515.69,attempts=1.0000,accepted_bits=15.00,measured_raw_bits=16.00,sink=-455
+frodo1344,selected-sda-cdt,q=88,q_bits=7,entries=7,fixed_packed_bits=49,native_cumulative_bytes=7,median_cycles=489.65,MAD=5.72,p10=480.86,p90=495.88,min=478.05,max=498.09,attempts=1.4537,accepted_bits=7.00,measured_raw_bits=11.18,sink=522
+frodo1344,speedup_vs_original_percent=4.87
+frodo1344,speedup_vs_regenerated_cdt_percent=3.59

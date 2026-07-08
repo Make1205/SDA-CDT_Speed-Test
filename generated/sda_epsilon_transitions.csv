@@ -1,4 +1,4 @@
 parameter_set,epsilon_left,epsilon_right,q_left,q_right,raw_vector_equal,transition_detected,refinement_level,tie_detected,interval_width,transition_status
-frodo640,0.32,0.62,749892,749892,true,false,0,false,0.30,observed-stable-selected-grid
-frodo976,0.32,0.62,115956,115956,true,false,0,false,0.30,observed-stable-selected-grid
-frodo1344,0.32,0.62,1046,1046,true,false,0,false,0.30,observed-stable-selected-grid
+frodo640,0.40,0.65,8536,8536,false,true,1,false,0.25,observed-transition-grid
+frodo976,0.40,0.65,278,278,false,true,1,false,0.25,observed-transition-grid
+frodo1344,0.40,0.65,88,88,false,true,1,false,0.25,observed-transition-grid

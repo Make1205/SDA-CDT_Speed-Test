@@ -1,6 +1,6 @@
-certificate_format=epsilon-svp-specialized-v2
-selection_rule=q-ascending-after-baseline-dominance
-[frodo640-eps0]
+certificate_format=epsilon-svp-specialized-v3
+selection_rule=compact-q-and-original-frodo-improvement-then-q-ascending
+[frodo640-eps-selected]
 solver=exact-linf-sda-specialized
 q_is_solver_output=true
 q_was_fixed_in_advance=false
@@ -8,10 +8,13 @@ q_was_enumerated_by_application_search=false
 exact_linf_svp=true
 interval_certified=true
 global_svp_certified=true
-raw_svp_q=749892
-raw_svp_coefficients=106845 200487 165575 120367 77024 43386 21512 9389 3607 1220 363 95 22
+compact_q_valid=true
+original_frodo_sd_improved=true
+original_frodo_renyi_improved=true
+raw_svp_q=8536
+raw_svp_coefficients=1216 2282 1885 1370 877 494 245 107 41 14 4 1 0
 
-[frodo976-eps0]
+[frodo976-eps-selected]
 solver=exact-linf-sda-specialized
 q_is_solver_output=true
 q_was_fixed_in_advance=false
@@ -19,10 +22,13 @@ q_was_enumerated_by_application_search=false
 exact_linf_svp=true
 interval_certified=true
 global_svp_certified=true
-raw_svp_q=115956
-raw_svp_coefficients=20113 36598 27562 17182 8866 3787 1339 392 95 19 3
+compact_q_valid=true
+original_frodo_sd_improved=true
+original_frodo_renyi_improved=true
+raw_svp_q=278
+raw_svp_coefficients=48 88 66 41 22 9 3 1 0 0 0
 
-[frodo1344-eps0]
+[frodo1344-eps-selected]
 solver=exact-linf-sda-specialized
 q_is_solver_output=true
 q_was_fixed_in_advance=false
@@ -30,6 +36,9 @@ q_was_enumerated_by_application_search=false
 exact_linf_svp=true
 interval_certified=true
 global_svp_certified=true
-raw_svp_q=1046
-raw_svp_coefficients=298 462 215 60 10 1 0
+compact_q_valid=true
+original_frodo_sd_improved=true
+original_frodo_renyi_improved=true
+raw_svp_q=88
+raw_svp_coefficients=25 39 18 5 1 0 0
 

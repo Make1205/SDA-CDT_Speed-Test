@@ -1,7 +1,7 @@
 structural_valid=true
 target_distribution_recomputed=true
 
-[frodo640:frodo_original_reference]
+[frodo640:original-frodo-cdt]
 structural_valid=true
 baseline_valid=true
 baseline_metrics_recomputed=true
@@ -15,12 +15,12 @@ target_distribution_recomputed=true
 normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=7.19724988889214700e-6
-sd_support=9.56313647774775784e-5
-renyi_main=1.00021695705494862e0
+sd_support=4.47984152885241529e-5
+renyi_main=1.00061728996638048e0
 source_is_fixture=false
 production_eligible=true
 
-[frodo976:frodo_original_reference]
+[frodo976:original-frodo-cdt]
 structural_valid=true
 baseline_valid=true
 baseline_metrics_recomputed=true
@@ -34,12 +34,12 @@ target_distribution_recomputed=true
 normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=4.21316144223762913e-6
-sd_support=9.79928863473863030e-5
-renyi_main=1.00007496465918589e0
+sd_support=4.81593607541287854e-5
+renyi_main=1.09685644098384582e0
 source_is_fixture=false
 production_eligible=true
 
-[frodo1344:frodo_original_reference]
+[frodo1344:original-frodo-cdt]
 structural_valid=true
 baseline_valid=true
 baseline_metrics_recomputed=true
@@ -53,8 +53,8 @@ target_distribution_recomputed=true
 normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=2.17076392937646300e-6
-sd_support=2.09058018517039405e-3
-renyi_main=1.01150819403708867e0
+sd_support=2.43685483365787521e-5
+renyi_main=1.03268332621288326e0
 source_is_fixture=false
 production_eligible=true
 
@@ -72,8 +72,8 @@ target_distribution_recomputed=true
 normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=7.19724988889214700e-6
-sd_support=8.27937016345003159e-7
-renyi_main=1.00000005749245013e0
+sd_support=1.18654781702372701e-4
+renyi_main=1.00007779633243945e0
 source_is_fixture=false
 production_eligible=true
 
@@ -91,8 +91,8 @@ target_distribution_recomputed=true
 normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=4.21316144223762913e-6
-sd_support=4.18512979957754178e-6
-renyi_main=1.00000140134818760e0
+sd_support=3.82027511481330001e-3
+renyi_main=1.05250953914893064e0
 source_is_fixture=false
 production_eligible=true
 
@@ -110,8 +110,8 @@ target_distribution_recomputed=true
 normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=2.17076392937646300e-6
-sd_support=2.07166692422687303e-4
-renyi_main=1.00010185665578588e0
+sd_support=3.33088893044161344e-3
+renyi_main=1.17594894974047733e0
 source_is_fixture=false
 production_eligible=true
 
@@ -149,7 +149,7 @@ normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=4.21316144223762913e-6
 sd_support=4.81593607541287854e-5
-renyi_main=1.06293839849465096e0
+renyi_main=1.09685644098384582e0
 source_is_fixture=false
 production_eligible=true
 
@@ -168,7 +168,7 @@ normalized_pmf_valid=true
 table_type_valid=true
 tail_mass=2.17076392937646300e-6
 sd_support=2.43685483365787521e-5
-renyi_main=1.00114584657380886e0
+renyi_main=1.03268332621288326e0
 source_is_fixture=false
 production_eligible=true
 

@@ -1,0 +1,4 @@
+parameter_set,epsilon,solver,global_svp_certified,raw_svp_q,compact_q_valid,sd_improved,renyi_improved,production_eligible,rejection_reason
+frodo640,0.32,exact-linf-sda-specialized,true,749892,false,true,true,false,q_not_compact
+frodo976,0.32,exact-linf-sda-specialized,true,749892,false,true,true,false,q_not_compact
+frodo1344,0.32,exact-linf-sda-specialized,true,749892,false,true,true,false,q_not_compact
