@@ -99,3 +99,23 @@ The raw SVP vector is kept separate from the online probability table. The gener
 `generate_sdat --all-available --require-certified-linf-svp --reproducible` writes the currently certified Frodo tables and returns partial-success exit code 2 because Falcon is unresolved. `generate_classical_cdt --all --reproducible` regenerates the matching classical CDT baseline from the same conditioned-support target distribution with denominator `2^k`.
 
 Note: Frodo generated headers still use the existing `sda_u128` storage path in this snapshot, so native byte counts are conservative for Frodo. The fixed packed bit counts remain `N * ceil(log2(q))`; true minimal native-width arrays are still pending.
+
+## Current certified SDA generation status
+
+This repository distinguishes the compact-table search objectives explicitly:
+
+* `exact-denominator-search` is an exhaustive search over normalized PMFs and is **not** a lattice SVP certificate.
+* `exact-linf-svp` is the SDA-specialized lattice objective `F(q)=max(q, C max_i ||q alpha_i||_Z)`.  For fixed `q`, nearest integers are selected coordinate-wise; global certification enumerates all `1 <= q < R_best` using MPFR directed-rounding intervals.
+* Raw SVP vectors and normalized probability masses are reported separately.  If fixed-`q` min-max normalization is used, the normalized PMF is not described as the raw shortest lattice vector.
+
+The generated Frodo SDA tables are interval-certified with `search_space_exhausted`, `nearest_integer_certified`, `norm_comparisons_certified`, `interval_certified`, and `global_svp_certified` metadata.  Falcon remains `exact_generation_unresolved` and is not emitted in the production header.
+
+## Native integer widths and benchmarks
+
+Generated online cumulative arrays use the smallest C integer type that stores the terminal cumulative value `q`: `uint8_t`, `uint16_t`, `uint32_t`, `uint64_t`, or `sda_u128`.  Current Frodo SDA and classical CDT tables use `uint16_t` arrays.  `fixed_packed_bits` is the fixed-width payload `N * denominator_bits`, while `native_cumulative_bytes` is the online cumulative array size only.
+
+`benchmark_sampling --all --cycles` uses serialized TSC timing (`CPUID/RDTSC ... RDTSCP/CPUID`), a benchmark-only RNG, identical scan logic for classical CDT and SDA-CDT, and writes both summary and raw repetition CSV files under `generated/`.
+
+## Rényi and verification caveats
+
+The main Rényi direction is `R_a(D_SDA || D_target)`.  Frodo RD values are informational in the current configs because no hard composed-security parameters are configured; finite RD is not reported as a security pass.  `verify_sdat --all` recomputes target distributions, metrics, native table widths, and reruns the SDA-specialized certificate path for production SDA tables.
