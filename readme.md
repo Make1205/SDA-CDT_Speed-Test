@@ -119,3 +119,21 @@ Generated online cumulative arrays use the smallest C integer type that stores t
 ## Rényi and verification caveats
 
 The main Rényi direction is `R_a(D_SDA || D_target)`.  Frodo RD values are informational in the current configs because no hard composed-security parameters are configured; finite RD is not reported as a security pass.  `verify_sdat --all` recomputes target distributions, metrics, native table widths, and reruns the SDA-specialized certificate path for production SDA tables.
+
+## Baseline-dominating application selection
+
+This workflow no longer requires the final SDA-CDT application table to have negligible SD or Rényi divergence against the ideal Gaussian.  Instead, the production search imports the original Frodo sampler tables, recomputes their `sd_support`, `sd_infinite`, and main-direction Rényi values from integer masses, and accepts an SDA candidate only when the corresponding metrics are not worse than the original baseline.  The original baseline tables are emitted separately in `generated/original_baseline_tables.h`; the regenerated classical CDT in `generated/classical_cdt_generated_tables.h` is a separate comparison point and is not used as the original baseline.
+
+The exact SDA-specialized `linf` SVP denominator remains recorded as theoretical metadata (`exact_svp_q`, raw coefficients, norm interval, and certificate fields).  The application denominator is selected by `baseline-dominating-power2-close`: first require a valid normalized PMF and certified baseline dominance, then minimize RNG draw bits `ceil(log2(q))`, and within the same draw width maximize `q / 2^ceil(log2(q))` to minimize rejection.  If `application_q != exact_svp_q`, reports set `final_q_from_exact_svp=false`; the application PMF must not be described as a shortest lattice vector.
+
+For bounded uniform sampling the reports distinguish:
+
+* `draw_bits = ceil(log2(q))`, the number of random bits drawn per rejection attempt;
+* `threshold_bits = ceil(log2(q+1))`, the bits needed to store the terminal cumulative threshold `q`;
+* `power_of_two_ceiling`, `absolute_power2_gap`, `relative_power2_gap`, `acceptance_ratio`, `expected_attempts`, and `expected_raw_bits`.
+
+Candidate and frontier files (`generated/sda_application_candidates.csv` and `generated/sda_pareto_frontier.csv`) record the selected baseline-dominating application candidates.  For Frodo the implemented search evaluates denominators by increasing draw width and descending `q`, so once lower draw widths have no feasible candidate, the first feasible denominator in the current width is the closest-to-power-of-two application optimum for that rule.
+
+Falcon is treated conservatively: the old non-monotone Falcon fixture is a regression test for rejection, not a legal baseline.  Because this repository does not currently contain a validated original Falcon sampler table importer, Falcon baseline comparison and production application selection remain unavailable; heuristic Falcon outputs must stay outside the production header.
+
+Cycle benchmarks now report three common-harness rows where available: `original-frodo-cdt`, `regenerated-classical-cdt`, and `selected-sda-cdt`.  Reported speedups are labeled against the original baseline and regenerated CDT separately.  Native memory counts are actual C cumulative-array bytes plus denominator storage as reported, while packed payload uses the threshold-bit model; equal `uint16_t` arrays do not imply native byte savings even when packed payload bits differ.
