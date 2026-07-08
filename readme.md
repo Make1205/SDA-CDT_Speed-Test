@@ -24,7 +24,7 @@ ctest --test-dir build --output-on-failure
 The production path is:
 
 ```text
-config -> MPFR conditioned-support target distribution -> denominator search -> normalized integer masses -> cumulative thresholds -> SD/RD/tail metrics -> generated C/CSV/report files
+config -> MPFR conditioned-support target distribution -> denominator search -> normalized integer masses -> cumulative thresholds -> tail/sd_support/sd_infinite/RD metrics -> generated C/CSV/report files
 ```
 
 `--all` does not use target-q fixtures. `target-q` is reserved for historical/debug work and must not overwrite production output unless a future explicit nonproduction flag is added.
@@ -47,7 +47,7 @@ The implemented target policy is `target_distribution=conditioned_support`. `D_i
 * Falcon uses `flint-lll`: FLINT LLL is actually linked when `-DSDA_ENABLE_FLINT=ON`; the resulting path is marked heuristic, not exact SVP. The implementation uses FLINT as a deterministic candidate-generation hook and then normalizes/validates with MPFR. It must not be described as BKZ or exact SVP.
 * Historical `target-q`/paper values are kept only as reference fixtures and comparison data.
 
-The Frodo selection rule is: smallest denominator bit length, then smallest `q`, then smallest final SD, then smallest scaled error, then lexicographically smallest probability vector.
+The Frodo selection rule is: smallest denominator bit length, then smallest `q`, then smallest final `sd_infinite`, then smallest scaled error, then lexicographically smallest probability vector.
 
 ## Generated files
 
@@ -59,7 +59,7 @@ The Frodo selection rule is: smallest denominator bit length, then smallest `q`,
 * `generated/sda_generation_report.txt`
 * `generated/sda_candidate_report.csv`
 
-The generated header records `SDA_GENERATED_SOURCE_IS_FIXTURE 0`. Reports include generation mode, GMP/MPFR/FLINT status, solver labels, exact/heuristic flags, tail, SD, RD, packed bits and native cumulative bytes.
+The generated header records `SDA_GENERATED_SOURCE_IS_FIXTURE 0`. Reports include generation mode, GMP/MPFR/FLINT status, solver labels, exact/heuristic flags, tail, sd_support, sd_infinite, RD, packed bits and native cumulative bytes.
 
 ## Memory metrics
 
@@ -86,8 +86,23 @@ Generated denominators and masses may differ from historical manuscript tables. 
 
 ## Exact SVP status and cycle timing update
 
-`exact-linf-svp` is now accepted for Frodo production commands and is recorded as the production solver label. In this implementation it uses the SDA fixed-denominator exhaustive cross-check path as the certified finite search for the supported Frodo dimensions; `exact-denominator` remains available as an explicit research mode. Falcon exact generation is not emitted as a default production table: `generate_sdat --all --require-exact --reproducible` reports `Falcon exact generation unresolved` and writes only certified Frodo production tables rather than falling back to a heuristic or boundary denominator.
-
 Rényi divergence is evaluated in the main direction `D_SDA || D_target`: zero SDA mass on a positive target coordinate contributes zero rather than infinity; positive SDA mass on zero target mass remains infinite.
 
-Cycle benchmarks use `sda_cycles_start()`/`sda_cycles_stop()` with CPUID/RDTSC and RDTSCP/CPUID serialization on x86. The benchmark pins to logical CPU 0 when the OS permits it, reports timestamp overhead, and writes `generated/sda_cycle_benchmark.csv`. Current CDT rows are marked `CDT-generated-placeholder` and are not claimed as a final independent classical CDT baseline.
+Cycle benchmarks use `sda_cycles_start()`/`sda_cycles_stop()` with CPUID/RDTSC and RDTSCP/CPUID serialization on x86. The benchmark pins to logical CPU 0 when the OS permits it, reports timestamp overhead, and writes `generated/sda_cycle_benchmark.csv`. Classical CDT rows are not emitted until the generator writes real classical CDT tables; speedup is reported as unavailable rather than using a placeholder.
+
+## Current solver metadata and unresolved exact-SVP work
+
+The generated Frodo production tables in this repository are currently produced by `exact-denominator-search`: an exhaustive scan of `q = 1..2^k-1` with exact fixed-`q` normalization. They are **not** certified results of the SDA lattice `exact-linf-svp` solver. Generated metadata therefore uses:
+
+- `solver = exact-denominator-search`
+- `denominator_search_exact = true`
+- `fixed_q_normalization_exact = true`
+- `exact_linf_svp = false`
+- `global_svp_certified = false`
+- `lattice_solver_used = false`
+
+The `exact-linf-svp` production path is intentionally unresolved in this snapshot; commands that require full exact certification for all parameter sets fail when Falcon cannot be certified. `generate_sdat --all --require-exact` returns exit code `3` and prints `Falcon exact generation unresolved`. Use `generate_sdat --all-available --require-exact --reproducible` to write only the currently available Frodo tables; that mode returns exit code `2` for partial success.
+
+Metrics now distinguish `tail_mass`, `sd_support = Delta(D_S,D_SDA)`, and `sd_infinite = Delta(D_infinity,D_SDA)`. Rényi divergence fields are informational for Frodo unless `renyi_hard_constraint=true` is provided by a configuration and satisfied by the generator.
+
+The sampling benchmark does not emit placeholder speedups. Until a generated classical CDT table is emitted alongside every SDA-CDT table, benchmark output marks `classical-cdt` speedup as unavailable.
