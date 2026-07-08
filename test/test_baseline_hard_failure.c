@@ -1,0 +1,2 @@
+#include "sda_generation.h"
+int main(void){ sda_config c; if(sda_config_builtin("frodo976",&c)) return 1; c.renyi_order=200; c.epsilon_min=0.4166533333333333; c.epsilon_max=0.4166533333333333; c.epsilon_initial_trials=1; c.epsilon_refinement_rounds=0; sda_generation_result r; sda_generation_result_init(&r,c.mpfr_precision); int rc=sda_generate_for_config(&c,"exact-linf-svp",&r); int ok=(rc!=0 && !r.baseline_dominance_certified && !r.production_eligible); sda_generation_result_clear(&r); return ok?0:2; }
