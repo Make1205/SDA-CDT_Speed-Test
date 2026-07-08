@@ -1,72 +1,85 @@
-# SDA-CDT full C workflow
+# SDA-CDT C17 offline/online workflow
 
-This repository now provides a C17-only offline/online SDA-CDT workflow.  It replaces the previous C++17 benchmark-only implementation (`std::vector`, templates, and `rdtscp`) with C modules, CMake targets, generated fixtures, tests, and reproducible command-line tools.
+This repository is a C17 implementation of an offline and online SDA-CDT workflow. Production tables are generated from distribution parameters, support, precision and solver settings; historical paper tables live only under `test/fixtures/` for regression comparison and are not included by production generation code.
 
-## Dependencies
+## Dependencies and build
 
-Required: GMP and MPFR development headers/libraries. Optional: FLINT for future heuristic LLL candidate generation. If FLINT is not enabled, `--solver lll` exits with `dependency unavailable`; `exact-linf` and `target-q` remain available.
-
-Ubuntu example:
+Required: GMP and MPFR. Optional but required for Falcon `flint-lll`: FLINT.
 
 ```sh
-sudo apt-get install libgmp-dev libmpfr-dev
-```
-
-## Build
-
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSDA_ENABLE_FLINT=ON
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
-Options: `-DSDA_ENABLE_FLINT=ON/OFF`, `-DSDA_ENABLE_SANITIZERS=ON/OFF`, `-DSDA_BUILD_BENCHMARKS=ON/OFF`, `-DSDA_MPFR_DEFAULT_PRECISION=512`.
-
-## Tools
+## Production generation
 
 ```sh
-./build/generate_sdat --all
-./build/generate_sdat --config config/frodo640.conf --solver exact-linf
-./build/generate_sdat --config config/falcon.conf --solver lll
-./build/generate_sdat --config config/falcon.conf --solver target-q --target-q 4696835740265763827900
-./build/verify_sdat generated/sda_generated_tables.h
-./build/benchmark_sampling --all
+./build/generate_sdat --all --reproducible
+./build/generate_sdat --config config/frodo640.conf --solver exact-denominator
+./build/generate_sdat --config config/falcon.conf --solver flint-lll
+./build/verify_sdat --all
+```
+
+The production path is:
+
+```text
+config -> MPFR conditioned-support target distribution -> denominator search -> normalized integer masses -> cumulative thresholds -> SD/RD/tail metrics -> generated C/CSV/report files
+```
+
+`--all` does not use target-q fixtures. `target-q` is reserved for historical/debug work and must not overwrite production output unless a future explicit nonproduction flag is added.
+
+## Distribution parameterization
+
+Config files give standard deviation `sigma`. The code converts to the paper parameter
+
+```text
+gaussian_s = sigma * sqrt(2*pi)
+```
+
+for `rho_{c,s}(x)=exp(-pi(x-c)^2/s^2)`. Reports include both `sigma` in config and `gaussian_s` in the generation report.
+
+The implemented target policy is `target_distribution=conditioned_support`. `D_infinity` is the infinite discrete Gaussian, `S` is the configured finite support, and generated integer tables approximate `D_S = D_infinity | S`. Tail mass is reported separately and is not silently dropped.
+
+## Solvers
+
+* Frodo uses `exact-denominator`: every `q=1..2^k-1` is scanned. For each fixed `q`, normalized integer masses are obtained by deterministic fixed-q min-max rounding with the constraint `sum p_i=q`.
+* Falcon uses `flint-lll`: FLINT LLL is actually linked when `-DSDA_ENABLE_FLINT=ON`; the resulting path is marked heuristic, not exact SVP. The implementation uses FLINT as a deterministic candidate-generation hook and then normalizes/validates with MPFR. It must not be described as BKZ or exact SVP.
+* Historical `target-q`/paper values are kept only as reference fixtures and comparison data.
+
+The Frodo selection rule is: smallest denominator bit length, then smallest `q`, then smallest final SD, then smallest scaled error, then lexicographically smallest probability vector.
+
+## Generated files
+
+`generate_sdat` writes:
+
+* `generated/sda_generated_tables.h`
+* `generated/sda_tables.csv`
+* `generated/sda_metrics.csv`
+* `generated/sda_generation_report.txt`
+* `generated/sda_candidate_report.csv`
+
+The generated header records `SDA_GENERATED_SOURCE_IS_FIXTURE 0`. Reports include generation mode, GMP/MPFR/FLINT status, solver labels, exact/heuristic flags, tail, SD, RD, packed bits and native cumulative bytes.
+
+## Memory metrics
+
+Fixed packed bits are defined as `N * ceil(log2(q))` for cumulative-table payload. Native cumulative bytes are `N * sizeof(sda_u128)`. These are separate from full C table object/native metadata bytes.
+
+The historical Falcon denominator `4696835740265763827900` has bit length 72, so 19 fixed-width cumulative entries would use `19*72 = 1368` fixed packed bits.
+
+## Benchmarks
+
+```sh
 ./build/benchmark_offline --all
+./build/benchmark_sampling --all
 ```
 
-## Solver modes
+Benchmarks use a benchmark-only RNG callback, monotonic clock, warm-up, repeated runs and a result sink. Do not use the benchmark RNG in production cryptographic code. Current `benchmark_sampling` reports generated SDA-CDT table speed and memory metrics; the framework is ready for generated classical CDT side-by-side reporting, but this patch does not claim old C++ benchmark numbers as CDT speedups.
 
-* `exact-linf`: exact recursive \(\ell_\infty\) enumeration for small upper-triangular SDA bases; reports nodes, leaves, pruning, best vector, and norm.
-* `lll`: optional FLINT heuristic candidate mode only. Results must be labelled `heuristic LLL candidate`, never BKZ or exact SVP.
-* `target-q`: deterministic constrained balanced largest-remainder rounding for a specified denominator. It is not an SVP result.
+## Reference fixtures
 
-## Distributions and metrics
+Historical Frodo masses and the old non-monotone Falcon cumulative table are under `test/fixtures/`. `test_nonmonotone_fixture` proves the old Falcon non-monotone data is rejected by table validation. Production code does not include these fixture translation units.
 
-MPFR is used for high-precision finite-support discrete Gaussian probabilities, statistical distance, pointwise error, and multiplicative Rényi divergence. The code distinguishes finite support tables from infinite-support tails in reports; the checked-in fixture report notes that Frodo tables reproduce manuscript masses and Falcon is fixture/target-q derived from the repository's existing cumulative data.
+## Expected differences from paper tables
 
-## Online sampling
-
-The sampler uses an RNG callback:
-
-```c
-typedef int (*sda_random_bytes_fn)(void *ctx, uint8_t *out, size_t out_len);
-```
-
-`uniform_bounded(q)` supports `q=1`, powers of two, `q <= 2^64`, and Falcon-size denominators above 64 bits using `__uint128_t`. Benchmark RNG is XorShift-style and is **benchmark-only**, not production cryptographic randomness.
-
-For Frodo, magnitude is sampled first. A sign bit may be consumed for zero to keep a fixed randomness flow, but zero's sign is ignored and does not alter the zero probability.
-
-## Bits and memory
-
-* Accepted bits: \(\lceil \log_2 q \rceil\) per accepted bounded-uniform sample.
-* Raw bits: accepted bits multiplied by rejection attempts; expected raw bits are \(b 2^b/q\).
-* Ideal packed payload bits: fixed-width table payload \(N\lceil\log_2 q\rceil\).
-* Native bytes: actual C array storage using `sizeof`-based `__uint128_t` arrays. Native benchmarks are not claimed to be bit-packed benchmarks.
-
-## Reproducing paper/reference tables
-
-Run `./build/generate_sdat --all` and `./build/verify_sdat generated/sda_generated_tables.h`. Frodo fixtures are explicit regression data matching the manuscript masses. The previous Falcon cumulative table contained a non-monotone tail entry; this workflow marks Falcon as target-q fixture data and not exact enumeration.
-
-## Known limitations
-
-Falcon exact enumeration is expected to be impractical in this compact implementation and is not represented as exact. FLINT LLL is optional and, when absent, reports dependency unavailable. Real bit-packed sampler storage is not implemented; reports separate ideal packed payload bits from native bytes.
+Generated denominators and masses may differ from historical manuscript tables. That is expected: production generation does not hard-code manuscript denominators, probability masses or cumulative thresholds.

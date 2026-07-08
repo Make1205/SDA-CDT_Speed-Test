@@ -1,5 +1,5 @@
-parameter_set,solver,exact,heuristic,target_q_mode,q_bitlength,ideal_packed_payload_bits,native_storage_bytes
-frodo640,target-q-balanced-rounding,false,false,true,14,182,416
-frodo976,target-q-balanced-rounding,false,false,true,13,143,352
-frodo1344,target-q-balanced-rounding,false,false,true,7,49,224
-falcon,target-q fixture,false,false,true,73,1387,608
+parameter_set,solver,solver_exact,solver_heuristic,source_is_fixture,q,q_bitlength,tail_mass,sd_infinite,log2_sd,renyi,log2_renyi_minus_one,fixed_packed_bits,cumulative_native_bytes,generation_time
+frodo640,exact-denominator,1,0,0,9733,14,7.19724988889214700e-6,1.41319860752145793e-4,-1.27887481467500500e1,@Inf@,@Inf@,182,208,7.437565
+frodo976,exact-denominator,1,0,0,5966,13,4.21316144223762913e-6,1.02707495970835082e-4,-1.32491709008602014e1,@Inf@,@Inf@,143,176,5.986597
+frodo1344,exact-denominator,1,0,0,11230,14,2.17076392937646300e-6,4.96685116738493662e-5,-1.42973089576380460e1,1.00003822820359629e0,-1.46750030671918159e1,98,112,4.415845
+falcon,flint-lll,0,1,0,2361183241434822606847,71,8.02116446800106800e-25,1.04535562431027512e-21,-6.96964961698028253e1,1.00000000000000000e0,-7.13390588475333066e1,1349,304,0.000000
