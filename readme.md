@@ -83,3 +83,11 @@ Historical Frodo masses and the old non-monotone Falcon cumulative table are und
 ## Expected differences from paper tables
 
 Generated denominators and masses may differ from historical manuscript tables. That is expected: production generation does not hard-code manuscript denominators, probability masses or cumulative thresholds.
+
+## Exact SVP status and cycle timing update
+
+`exact-linf-svp` is now accepted for Frodo production commands and is recorded as the production solver label. In this implementation it uses the SDA fixed-denominator exhaustive cross-check path as the certified finite search for the supported Frodo dimensions; `exact-denominator` remains available as an explicit research mode. Falcon exact generation is not emitted as a default production table: `generate_sdat --all --require-exact --reproducible` reports `Falcon exact generation unresolved` and writes only certified Frodo production tables rather than falling back to a heuristic or boundary denominator.
+
+Rényi divergence is evaluated in the main direction `D_SDA || D_target`: zero SDA mass on a positive target coordinate contributes zero rather than infinity; positive SDA mass on zero target mass remains infinite.
+
+Cycle benchmarks use `sda_cycles_start()`/`sda_cycles_stop()` with CPUID/RDTSC and RDTSCP/CPUID serialization on x86. The benchmark pins to logical CPU 0 when the OS permits it, reports timestamp overhead, and writes `generated/sda_cycle_benchmark.csv`. Current CDT rows are marked `CDT-generated-placeholder` and are not claimed as a final independent classical CDT baseline.

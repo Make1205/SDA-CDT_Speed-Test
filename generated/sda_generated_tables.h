@@ -9,13 +9,10 @@ static const sda_u128 sda_frodo976_p[]={(sda_u128)1035ULL,(sda_u128)1883ULL,(sda
 static const sda_u128 sda_frodo976_c[]={(sda_u128)1035ULL,(sda_u128)2918ULL,(sda_u128)4336ULL,(sda_u128)5220ULL,(sda_u128)5676ULL,(sda_u128)5871ULL,(sda_u128)5940ULL,(sda_u128)5960ULL,(sda_u128)5965ULL,(sda_u128)5966ULL,(sda_u128)5966ULL};
 static const sda_u128 sda_frodo1344_p[]={(sda_u128)3200ULL,(sda_u128)4959ULL,(sda_u128)2307ULL,(sda_u128)644ULL,(sda_u128)108ULL,(sda_u128)11ULL,(sda_u128)1ULL};
 static const sda_u128 sda_frodo1344_c[]={(sda_u128)3200ULL,(sda_u128)8159ULL,(sda_u128)10466ULL,(sda_u128)11110ULL,(sda_u128)11218ULL,(sda_u128)11229ULL,(sda_u128)11230ULL};
-static const sda_u128 sda_falcon_p[]={((sda_u128)848840120873320147ULL*1000u+(sda_u128)293u),((sda_u128)729971728321456478ULL*1000u+(sda_u128)331u),((sda_u128)464244177509005528ULL*1000u+(sda_u128)958u),((sda_u128)218346972408527208ULL*1000u+(sda_u128)925u),((sda_u128)75946570395184601ULL*1000u+(sda_u128)694u),((sda_u128)19535720924146119ULL*1000u+(sda_u128)433u),(sda_u128)3716302024510187983ULL,(sda_u128)522820784996287394ULL,(sda_u128)54394497774714845ULL,(sda_u128)4185211222600672ULL,(sda_u128)238144236154167ULL,(sda_u128)10021276652654ULL,(sda_u128)311864766404ULL,(sda_u128)7177444719ULL,(sda_u128)122161311ULL,(sda_u128)1537651ULL,(sda_u128)14313ULL,(sda_u128)99ULL,(sda_u128)1ULL};
-static const sda_u128 sda_falcon_c[]={((sda_u128)848840120873320147ULL*1000u+(sda_u128)293u),((sda_u128)1578811849194776625ULL*1000u+(sda_u128)624u),((sda_u128)2043056026703782154ULL*1000u+(sda_u128)582u),((sda_u128)2261402999112309363ULL*1000u+(sda_u128)507u),((sda_u128)2337349569507493965ULL*1000u+(sda_u128)201u),((sda_u128)2356885290431640084ULL*1000u+(sda_u128)634u),((sda_u128)2360601592456150272ULL*1000u+(sda_u128)617u),((sda_u128)2361124413241146560ULL*1000u+(sda_u128)11u),((sda_u128)2361178807738921274ULL*1000u+(sda_u128)856u),((sda_u128)2361182992950143875ULL*1000u+(sda_u128)528u),((sda_u128)2361183231094380029ULL*1000u+(sda_u128)695u),((sda_u128)2361183241115656682ULL*1000u+(sda_u128)349u),((sda_u128)2361183241427521448ULL*1000u+(sda_u128)753u),((sda_u128)2361183241434698893ULL*1000u+(sda_u128)472u),((sda_u128)2361183241434821054ULL*1000u+(sda_u128)783u),((sda_u128)2361183241434822592ULL*1000u+(sda_u128)434u),((sda_u128)2361183241434822606ULL*1000u+(sda_u128)747u),((sda_u128)2361183241434822606ULL*1000u+(sda_u128)846u),((sda_u128)2361183241434822606ULL*1000u+(sda_u128)847u)};
 static const sda_table sda_generated_tables[]={
-{"Frodo","frodo640","exact-denominator",0,12,14,1,0,0,13,(sda_u128)9733ULL,sda_frodo640_p,sda_frodo640_c,416,182},
-{"Frodo","frodo976","exact-denominator",0,10,13,1,0,0,11,(sda_u128)5966ULL,sda_frodo976_p,sda_frodo976_c,352,143},
-{"Frodo","frodo1344","exact-denominator",0,6,14,1,0,0,7,(sda_u128)11230ULL,sda_frodo1344_p,sda_frodo1344_c,224,98},
-{"Falcon","falcon","flint-lll",0,18,71,0,1,0,19,((sda_u128)2361183241434822606ULL*1000u+(sda_u128)847u),sda_falcon_p,sda_falcon_c,608,1349}
+{"Frodo","frodo640","exact-linf-svp",0,12,14,1,0,0,13,(sda_u128)9733ULL,sda_frodo640_p,sda_frodo640_c,416,182},
+{"Frodo","frodo976","exact-linf-svp",0,10,13,1,0,0,11,(sda_u128)5966ULL,sda_frodo976_p,sda_frodo976_c,352,143},
+{"Frodo","frodo1344","exact-linf-svp",0,6,14,1,0,0,7,(sda_u128)11230ULL,sda_frodo1344_p,sda_frodo1344_c,224,98}
 };
-static const size_t sda_generated_tables_count=4;
+static const size_t sda_generated_tables_count=3;
 #endif
