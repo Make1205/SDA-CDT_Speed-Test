@@ -1,0 +1,9 @@
+#include "sda_rng.h"
+#include <string.h>
+int sda_parse_u128(const char *s, sda_u128 *out){ if(!s||!out) return -1; sda_u128 v=0; int any=0; for(;*s;s++){ if(*s<'0'||*s>'9') return -1; sda_u128 old=v; v=v*10u+(unsigned)(*s-'0'); if(v<old) return -1; any=1;} if(!any) return -1; *out=v; return 0; }
+void sda_print_u128(sda_u128 v, char *out, size_t n){ char tmp[64]; size_t i=0; if(!n) return; if(v==0){ if(n>1){out[0]='0';out[1]=0;} else out[0]=0; return;} while(v&&i<sizeof tmp){ tmp[i++]=(char)('0'+v%10); v/=10;} size_t j=0; while(i&&j+1<n) out[j++]=tmp[--i]; out[j]=0; }
+unsigned sda_bitlength_u128(sda_u128 v){ unsigned b=0; while(v){ b++; v>>=1;} return b?b:1; }
+static uint64_t next64(sda_bench_rng *r){ uint64_t x=r->s[0], y=r->s[1]; r->s[0]=y; x^=x<<23; r->s[1]=x^y^(x>>17)^(y>>26); return r->s[1]+y; }
+void sda_bench_rng_init(sda_bench_rng *r, uint64_t seed){ r->s[0]=0x123456789abcdefULL^seed; r->s[1]=0xfedcba987654321ULL+(seed<<1); if(!r->s[0]&&!r->s[1]) r->s[1]=1; }
+int sda_bench_random_bytes(void *ctx,uint8_t*out,size_t n){ sda_bench_rng*r=ctx; for(size_t i=0;i<n;i++){ if((i&7)==0){ uint64_t x=next64(r); memcpy(out+i,&x,(n-i<8)?n-i:8); }} return 0; }
+int sda_uniform_bounded(sda_u128 q,sda_random_bytes_fn fn,void*ctx,sda_rng_stats*st,sda_u128*out){ if(!q||!fn||!out) return -1; if(q==1){*out=0; if(st){st->accepted_samples++;} return 0;} unsigned b=sda_bitlength_u128(q-1); size_t bytes=(b+7)/8; uint8_t buf[16]; sda_u128 mask=(b==128)?~(sda_u128)0:(((sda_u128)1<<b)-1); for(;;){ memset(buf,0,sizeof buf); if(fn(ctx,buf,bytes)) return -1; sda_u128 v=0; for(size_t i=0;i<bytes;i++) v|=((sda_u128)buf[i])<<(8*i); v&=mask; if(st){st->attempts++; st->raw_random_bits+=b;} if(v<q){*out=v; if(st){st->accepted_samples++; st->accepted_random_bits+=b;} return 0;} if(st) st->rejected_candidates++; } }

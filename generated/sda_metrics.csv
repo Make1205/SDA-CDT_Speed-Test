@@ -1,0 +1,5 @@
+parameter_set,solver,exact,heuristic,target_q_mode,q_bitlength,ideal_packed_payload_bits,native_storage_bytes
+frodo640,target-q-balanced-rounding,false,false,true,14,182,416
+frodo976,target-q-balanced-rounding,false,false,true,13,143,352
+frodo1344,target-q-balanced-rounding,false,false,true,7,49,224
+falcon,target-q fixture,false,false,true,73,1387,608

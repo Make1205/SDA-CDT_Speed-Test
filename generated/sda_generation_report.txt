@@ -1,0 +1,1 @@
+Generated deterministically by target-q fixture mode. Frodo fixtures match manuscript masses. Falcon values are derived from cumulative values already present in the previous repository; the previous list contained a non-monotone tail entry, so the report marks Falcon as fixture/target-q, not exact SVP or LLL.

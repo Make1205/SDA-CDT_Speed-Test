@@ -1,0 +1,6 @@
+#include "sda_table.h"
+#include <stdio.h>
+int sda_build_cumulative(const sda_u128*p,size_t n,sda_u128*c,sda_u128*q){ if(!p||!c||!q||!n)return-1; sda_u128 s=0; for(size_t i=0;i<n;i++){ s+=p[i]; c[i]=s; } *q=s; return 0; }
+int sda_validate_table(const sda_table*t,char*err,size_t errn){ if(!t||!t->masses||!t->cumulative||!t->table_length||!t->denominator){snprintf(err,errn,"invalid null table");return-1;} sda_u128 s=0,prev=0; for(size_t i=0;i<t->table_length;i++){ s+=t->masses[i]; if(t->cumulative[i]<prev){snprintf(err,errn,"cumulative not monotone at %zu",i);return-1;} prev=t->cumulative[i]; if(t->cumulative[i]!=s){snprintf(err,errn,"cumulative mismatch at %zu",i);return-1;} } if(s!=t->denominator){snprintf(err,errn,"sum != q");return-1;} if(t->cumulative[t->table_length-1]!=t->denominator){snprintf(err,errn,"terminal threshold != q");return-1;} return 0; }
+int sda_table_select_index(const sda_table*t,sda_u128 u){ size_t idx=t->table_length-1; unsigned found=0; for(size_t i=0;i<t->table_length;i++){ unsigned take=(!found && u<t->cumulative[i]); idx=take?i:idx; found|=take; } return (int)idx; }
+size_t sda_table_native_bytes(const sda_table*t){ return sizeof(*t)+2*t->table_length*sizeof(sda_u128); }
