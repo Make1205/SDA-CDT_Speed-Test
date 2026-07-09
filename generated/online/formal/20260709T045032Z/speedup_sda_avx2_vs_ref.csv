@@ -1,0 +1,17 @@
+comparison_dimension,scheme,parameter_set,benchmark_kind,batch_size,baseline_sampler,candidate_sampler,baseline_implementation,candidate_implementation,baseline_median_cycles,candidate_median_cycles,speedup_percent,result
+sda-avx2-vs-ref,Falcon,falcon,end-to-end,1,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,183.146000,147.817000,19.290075,faster
+sda-avx2-vs-ref,Falcon,falcon,end-to-end,8,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,213.082000,180.073000,15.491219,faster
+sda-avx2-vs-ref,Falcon,falcon,lookup-only,1,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,109.055000,120.371000,-10.376416,slower
+sda-avx2-vs-ref,Falcon,falcon,lookup-only,8,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,64.938000,77.232000,-18.931904,slower
+sda-avx2-vs-ref,Frodo,frodo1344,end-to-end,1,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,93.691000,124.377000,-32.752345,slower
+sda-avx2-vs-ref,Frodo,frodo1344,end-to-end,8,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,67.660000,50.401000,25.508424,faster
+sda-avx2-vs-ref,Frodo,frodo1344,lookup-only,1,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,146.845000,174.794000,-19.032994,slower
+sda-avx2-vs-ref,Frodo,frodo1344,lookup-only,8,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,44.989000,35.007000,22.187646,faster
+sda-avx2-vs-ref,Frodo,frodo640,end-to-end,1,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,94.895000,100.194000,-5.584067,slower
+sda-avx2-vs-ref,Frodo,frodo640,end-to-end,8,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,78.912000,77.363000,1.962946,faster
+sda-avx2-vs-ref,Frodo,frodo640,lookup-only,1,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,89.294000,102.013000,-14.243958,slower
+sda-avx2-vs-ref,Frodo,frodo640,lookup-only,8,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,32.707000,24.867000,23.970404,faster
+sda-avx2-vs-ref,Frodo,frodo976,end-to-end,1,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,89.920000,95.707000,-6.435721,slower
+sda-avx2-vs-ref,Frodo,frodo976,end-to-end,8,sda-cdt,sda-cdt,sda-cdt-ref,sda-cdt-avx2,75.674000,62.948000,16.816872,faster
+sda-avx2-vs-ref,Frodo,frodo976,lookup-only,1,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,113.392000,124.577000,-9.864012,slower
+sda-avx2-vs-ref,Frodo,frodo976,lookup-only,8,sda-table-lookup,sda-table-lookup,sda-table-ref,sda-table-avx2,32.048000,23.800000,25.736395,faster

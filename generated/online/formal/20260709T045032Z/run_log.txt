@@ -1,0 +1,27 @@
+artifact_dir=generated/online/formal/20260709T045032Z
+formal=0 quick=1 repetitions=2 samples=1000 warmup=10 batches=1,8 cpu=0
+CMake Warning at CMakeLists.txt:18 (message):
+  GMP/MPFR not found; offline targets and legacy tests are disabled, online
+  Original CDT/SDA_CDT targets remain available
+
+
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/SDA-CDT_Speed-Test/build-bench
+[ 25%] Built target sdat_online_common
+[ 50%] Built target sdat_online_avx2
+[ 75%] Built target sdat_online_ref
+[100%] Built target benchmark_sdat_online
+[ 25%] Built target sdat_online_common
+[ 50%] Built target sdat_online_ref
+[ 75%] Built target sdat_online_avx2
+[100%] Built target test_sdat_online
+Internal ctest changing into directory: /workspace/SDA-CDT_Speed-Test/build-bench
+Test project /workspace/SDA-CDT_Speed-Test/build-bench
+    Start 1: test_sdat_online
+1/1 Test #1: test_sdat_online .................   Passed    0.76 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.77 sec
+formal_artifact_dir=generated/online/formal/20260709T045032Z

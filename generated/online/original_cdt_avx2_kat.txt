@@ -1,0 +1,4 @@
+original_frodo640_ref_avx2_cross_kat=pass samples=1000000
+original_frodo976_ref_avx2_cross_kat=pass samples=1000000
+original_frodo1344_ref_avx2_cross_kat=pass samples=1000000
+original_falcon_ref_avx2_cross_kat=pass samples=1000000

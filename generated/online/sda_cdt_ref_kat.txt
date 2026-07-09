@@ -1,0 +1,7 @@
+frodo640_sdat_table_validate=pass
+frodo976_sdat_table_validate=pass
+frodo1344_sdat_table_validate=pass
+falcon_sdat_table_validate=pass
+frodo_sda_exhaustive_lookup=pass
+falcon_boundary_basic=pass
+u72_compare=pass
