@@ -1,0 +1,2 @@
+scheme,parameter_set,source,representation,entries,random_bits,compare_direction,output_semantics,sign_semantics
+Falcon,falcon,https://falcon-sign.info/impl/sign.c.html,19 reverse-tail thresholds each encoded as three 24-bit limbs,19,72,threshold > random,count of thresholds greater than random gives nonnegative base magnitude,sign external in full sampler
