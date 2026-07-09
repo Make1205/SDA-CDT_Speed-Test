@@ -1,0 +1,6 @@
+baseline_importer_valid=false
+fplll_backend_valid=true
+toy_bkz_exit_code=0
+falcon_candidate_available=false
+falcon_base_sampler_benchmark_available=false
+overall_valid=false

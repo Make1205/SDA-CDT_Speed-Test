@@ -1,2 +1,2 @@
-parameter_set,epsilon,solver,block_size,q,q_bits,power2_ceiling,absolute_gap,relative_gap,acceptance_ratio,expected_attempts,SD,RD,baseline_ratios,exact_linf_svp,heuristic_bkz,global_svp_certified,selected,status,bkz_backend_version
-falcon,not-run,falcon-bkz,20,0,0,0,0,0,0,0,unavailable,unavailable,unavailable,false,false,false,false,baseline_importer_missing,fplll-5.4.5
+parameter_set,epsilon,solver,block_size,q,q_bits,power2_ceiling,absolute_gap,relative_gap,acceptance_ratio,expected_attempts,SD,RD,exact_linf_svp,heuristic_bkz,global_svp_certified,selected,status,bkz_backend_version
+falcon,toy-bkz-smoke,falcon-bkz,2,0,0,0,0,0,0,0,unavailable,unavailable,false,true,false,false,no_valid_falcon_candidate_from_toy_smoke,fplll-5.4.5

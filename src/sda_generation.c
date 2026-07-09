@@ -1,9 +1,11 @@
+#include <stdio.h>
 #include "sda_generation.h"
 #include "sda_metrics.h"
 #include "sda_lll.h"
 #include "sda_exact_linf_sda.h"
 #include "sda_baseline.h"
 #include <string.h>
+#include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
@@ -22,8 +24,48 @@ static void finalize_metrics(mpfr_t*a,size_t n,sda_generation_result*r,long ro){
 static int better(size_t n,sda_generation_result*c,sda_generation_result*b){ if(!b->q) return 1; if(c->q_bits!=b->q_bits) return c->q_bits<b->q_bits; if(c->q!=b->q) return c->q<b->q; int sd=mpfr_cmp(c->sd_infinite,b->sd_infinite); if(sd) return sd<0; int e=mpfr_cmp(c->max_scaled_error,b->max_scaled_error); if(e) return e<0; for(size_t i=0;i<n;i++) if(c->p[i]!=b->p[i]) return c->p[i]<b->p[i]; return 0; }
 static int draw_bits(sda_u128 q){ if(q<=1) return 0; sda_u128 m=q-1; int b=0; while(m){b++;m>>=1;} return b; }
 static void power_metrics(sda_generation_result*r){ int b=draw_bits(r->q); r->application_draw_bits=b; r->threshold_bits=sda_bitlength_u128(r->q); sda_u128 M=((sda_u128)1)<<b; mpfr_t qq,mm; mpfr_inits2(mpfr_get_prec(r->acceptance_ratio),qq,mm,(mpfr_ptr)0); set_u128(qq,r->q); set_u128(mm,M); mpfr_div(r->acceptance_ratio,qq,mm,MPFR_RNDN); mpfr_div(r->expected_attempts,mm,qq,MPFR_RNDN); mpfr_mul_ui(r->expected_raw_bits,r->expected_attempts,(unsigned long)b,MPFR_RNDN); mpfr_clears(qq,mm,(mpfr_ptr)0); }
-static int compute_baseline(const sda_config*cfg,mpfr_t*a,size_t n,sda_generation_result*out){ (void)a; (void)n; out->baseline_q=((sda_u128)1)<<cfg->precision_k; double log2sd=-8.59, log2rd=-4.96; if(!strcmp(cfg->parameter_set,"frodo976")){ log2sd=-8.03; log2rd=-3.32; } else if(!strcmp(cfg->parameter_set,"frodo1344")){ log2sd=-6.57; log2rd=-1.98; } mpfr_set_d(out->baseline_sd_support,log2sd,MPFR_RNDN); mpfr_exp2(out->baseline_sd_support,out->baseline_sd_support,MPFR_RNDN); mpfr_set(out->baseline_sd_infinite,out->baseline_sd_support,MPFR_RNDN); mpfr_set_d(out->baseline_renyi,log2rd,MPFR_RNDN); mpfr_exp2(out->baseline_renyi,out->baseline_renyi,MPFR_RNDN); mpfr_add_ui(out->baseline_renyi,out->baseline_renyi,1,MPFR_RNDN); return 0; }
-static int baseline_ok(sda_generation_result*r){ return mpfr_cmp(r->sd_support,r->baseline_sd_support)<=0 && mpfr_cmp(r->sd_infinite,r->baseline_sd_infinite)<=0 && mpfr_cmp(r->renyi,r->baseline_renyi)<=0; }
+static int compute_baseline(const sda_config*cfg,mpfr_t*a,size_t n,sda_generation_result*out){ size_t bn=0; sda_u128 bq=0; const sda_u128 *bp=sda_frodo_original_pmf(cfg->parameter_set,&bn,&bq); if(!bp||bn!=n||bq!=(((sda_u128)1)<<cfg->precision_k)) return -1; sda_metrics bm; sda_metrics_init(&bm,cfg->mpfr_precision); sda_compute_metrics(a,n,bp,bq,cfg->renyi_order,&bm); out->baseline_q=bq; mpfr_set(out->baseline_sd_support,bm.sd_support,MPFR_RNDN); mpfr_set(out->baseline_sd_infinite,bm.sd_infinite,MPFR_RNDN); mpfr_set(out->baseline_renyi,bm.renyi,MPFR_RNDN); sda_metrics_clear(&bm); return 0; }
+static int baseline_ok(sda_generation_result*r){ return mpfr_cmp(r->sd_support,r->baseline_sd_support)<0 && mpfr_cmp(r->sd_infinite,r->baseline_sd_infinite)<0 && mpfr_cmp(r->renyi,r->baseline_renyi)<0; }
+static sda_u128 historical_q(const char*ps){ if(!strcmp(ps,"frodo640")) return (sda_u128)14534; if(!strcmp(ps,"frodo976")) return (sda_u128)7442; if(!strcmp(ps,"frodo1344")) return (sda_u128)102; return 0; }
+static int acceptance_meets_historical(const sda_config*cfg,sda_u128 q){ sda_u128 h=historical_q(cfg->parameter_set); if(!h||!q) return 0; int qb=draw_bits(q), hb=draw_bits(h); sda_u128 qceil=((sda_u128)1)<<qb, hceil=((sda_u128)1)<<hb; return q*hceil >= h*qceil; }
+static void trace_u(FILE*f,sda_u128 v){ if(v>>64) fprintf(f,"%llu%019llu",(unsigned long long)(v/10000000000000000000ULL),(unsigned long long)(v%10000000000000000000ULL)); else fprintf(f,"%llu",(unsigned long long)v); }
+static void print_mp_trace(FILE*f,mpfr_srcptr x){ mpfr_out_str(f,10,18,x,MPFR_RNDN); }
+static void trace_candidate(const sda_config*cfg,const sda_generation_result*c,int solver_rc,const char*reason){
+  if(!getenv("SDA_TRACE_CANDIDATES")) return;
+  FILE*all=fopen("generated/sda_all_candidates.csv","a");
+  FILE*rej=fopen("generated/sda_rejected_candidates.csv","a");
+  FILE*feas=fopen("generated/sda_feasible_candidates.csv","a");
+  if(!all||!rej||!feas){ if(all)fclose(all); if(rej)fclose(rej); if(feas)fclose(feas); return; }
+  const char*hdr="parameter_set,epsilon,refinement_level,lattice_hash,solver_status,q,raw_coefficients,global_svp_certified,PMF,compact_q_valid,sd,baseline_sd,sd_improved,renyi,baseline_renyi,renyi_improved,power2_ceiling,power2_gap,acceptance_ratio,rejection_rate,historical_acceptance_baseline,rejection_constraint_passed,expected_attempts,expected_raw_bits,feasible,rejection_reason,selected\n";
+  static int header_done=0; if(!header_done){ fputs(hdr,all); fputs(hdr,rej); fputs(hdr,feas); header_done=1; }
+  double eps=mpfr_get_d(c->epsilon,MPFR_RNDN);
+  sda_u128 M=c->q?(((sda_u128)1)<<draw_bits(c->q)):0, gap=M?M-c->q:0;
+  int compact=(c->q>0 && c->q<(((sda_u128)1)<<cfg->precision_k));
+  int acc=acceptance_meets_historical(cfg,c->q);
+  int feasible=(solver_rc==0&&c->production_eligible&&acc);
+  FILE*outs[2]={all, feasible?feas:rej};
+  for(int k=0;k<2;k++){
+    FILE*f=outs[k];
+    fprintf(f,"%s,%.17g,0,trace,%s,",cfg->parameter_set,eps,solver_rc==-8?"hard_constraint_failed":(solver_rc?"solver_failed":"ok"));
+    trace_u(f,c->q); fprintf(f,",\"");
+    for(size_t i=0;i<c->n;i++){ if(i)fputc(' ',f); trace_u(f,c->raw_svp_p[i]); }
+    fprintf(f,"\",%s,\"",c->global_svp_certified?"true":"false");
+    for(size_t i=0;i<c->n;i++){ if(i)fputc(' ',f); trace_u(f,c->p[i]); }
+    fprintf(f,"\",%s,",compact?"true":"false");
+    print_mp_trace(f,c->sd_infinite); fputc(',',f); print_mp_trace(f,c->baseline_sd_infinite);
+    fprintf(f,",%s,",mpfr_cmp(c->sd_infinite,c->baseline_sd_infinite)<0?"true":"false");
+    print_mp_trace(f,c->renyi); fputc(',',f); print_mp_trace(f,c->baseline_renyi);
+    fprintf(f,",%s,",mpfr_cmp(c->renyi,c->baseline_renyi)<0?"true":"false");
+    trace_u(f,M); fputc(',',f); trace_u(f,gap); fputc(',',f); print_mp_trace(f,c->acceptance_ratio); fputc(',',f);
+    mpfr_t one,rejrate,hist; mpfr_inits2(mpfr_get_prec(c->acceptance_ratio),one,rejrate,hist,(mpfr_ptr)0);
+    mpfr_set_ui(one,1,MPFR_RNDN); mpfr_sub(rejrate,one,c->acceptance_ratio,MPFR_RNDN); print_mp_trace(f,rejrate); fputc(',',f);
+    sda_u128 h=historical_q(cfg->parameter_set), hM=h?(((sda_u128)1)<<draw_bits(h)):1; set_u128(hist,h); set_u128(one,hM); mpfr_div(hist,hist,one,MPFR_RNDN); print_mp_trace(f,hist);
+    fprintf(f,",%s,",acc?"true":"false"); print_mp_trace(f,c->expected_attempts); fputc(',',f); print_mp_trace(f,c->expected_raw_bits);
+    fprintf(f,",%s,%s,false\n",feasible?"true":"false",reason);
+    mpfr_clears(one,rejrate,hist,(mpfr_ptr)0);
+  }
+  fclose(all); fclose(rej); fclose(feas);
+}
 int sda_search_application(const sda_config*cfg,mpfr_t*a,size_t n,sda_generation_result*out){ if(compute_baseline(cfg,a,n,out)) return -1; sda_generation_result cur; sda_generation_result_init(&cur,cfg->mpfr_precision); mpfr_set(cur.tail_mass,out->tail_mass,MPFR_RNDN); mpfr_set(cur.gaussian_s,out->gaussian_s,MPFR_RNDN); mpfr_set(cur.baseline_sd_support,out->baseline_sd_support,MPFR_RNDN); mpfr_set(cur.baseline_sd_infinite,out->baseline_sd_infinite,MPFR_RNDN); mpfr_set(cur.baseline_renyi,out->baseline_renyi,MPFR_RNDN); int maxb=cfg->precision_k; for(int b=1;b<=maxb;b++){ sda_u128 hi=((sda_u128)1)<<b; sda_u128 lo=(b?(((sda_u128)1)<<(b-1)):0); if(hi>((sda_u128)1<<cfg->precision_k)) hi=((sda_u128)1<<cfg->precision_k); for(sda_u128 q=hi;q>lo;q--){ cur.q=q; cur.q_bits=draw_bits(q); cur.n=n; sda_fixed_q_minmax(a,n,q,cur.p,cur.max_scaled_error,cur.max_abs_error,cur.l1_error); sda_build_cumulative(cur.p,n,cur.c,&cur.q); finalize_metrics(a,n,&cur,cfg->renyi_order); out->denominators_scanned++; if(!baseline_ok(&cur)) continue; for(size_t i=0;i<n;i++){out->p[i]=cur.p[i];out->c[i]=cur.c[i];} out->q=cur.q; out->application_q=cur.q; out->q_bits=draw_bits(cur.q); out->n=n; mpfr_set(out->max_scaled_error,cur.max_scaled_error,MPFR_RNDN); mpfr_set(out->max_abs_error,cur.max_abs_error,MPFR_RNDN); mpfr_set(out->l1_error,cur.l1_error,MPFR_RNDN); mpfr_set(out->sd_support,cur.sd_support,MPFR_RNDN); mpfr_set(out->sd_infinite,cur.sd_infinite,MPFR_RNDN); mpfr_set(out->renyi,cur.renyi,MPFR_RNDN); mpfr_set(out->renyi_minus_one,cur.renyi_minus_one,MPFR_RNDN); mpfr_set(out->log2_sd,cur.log2_sd,MPFR_RNDN); mpfr_set(out->log2_renyi_minus_one,cur.log2_renyi_minus_one,MPFR_RNDN); out->baseline_dominance_certified=1; power_metrics(out); mpfr_div(out->candidate_sd_ratio,out->sd_infinite,out->baseline_sd_infinite,MPFR_RNDN); mpfr_div(out->candidate_renyi_ratio,out->renyi,out->baseline_renyi,MPFR_RNDN); sda_generation_result_clear(&cur); return 0;} if(hi==((sda_u128)1<<cfg->precision_k)) break;} sda_generation_result_clear(&cur); return -2; }
 int sda_search_exact_denominator(const sda_config*cfg,mpfr_t*a,size_t n,sda_generation_result*out){ clock_t st=clock(); sda_generation_result cur; sda_generation_result_init(&cur,cfg->mpfr_precision); strcpy(cur.solver,"exact-denominator"); cur.exact=1; cur.n=n; mpfr_set(cur.tail_mass,out->tail_mass,MPFR_RNDN); mpfr_set(cur.gaussian_s,out->gaussian_s,MPFR_RNDN); sda_u128 max=((sda_u128)1<<cfg->precision_k)-1; for(sda_u128 q=1;q<=max;q++){ cur.q=q; cur.q_bits=sda_bitlength_u128(q); cur.denominators_scanned++; sda_fixed_q_minmax(a,n,q,cur.p,cur.max_scaled_error,cur.max_abs_error,cur.l1_error); if(!accept_point(cur.max_abs_error,cfg->precision_k)) continue; sda_build_cumulative(cur.p,n,cur.c,&cur.q); finalize_metrics(a,n,&cur,cfg->renyi_order); if(better(n,&cur,out)){ for(size_t i=0;i<n;i++){out->p[i]=cur.p[i];out->c[i]=cur.c[i];} out->q=cur.q; out->q_bits=cur.q_bits; out->n=n; out->denominators_scanned=cur.denominators_scanned; out->exact=1; out->source_is_fixture=0; strcpy(out->solver,"exact-denominator"); mpfr_set(out->max_scaled_error,cur.max_scaled_error,MPFR_RNDN); mpfr_set(out->max_abs_error,cur.max_abs_error,MPFR_RNDN); mpfr_set(out->l1_error,cur.l1_error,MPFR_RNDN); mpfr_set(out->sd_support,cur.sd_support,MPFR_RNDN); mpfr_set(out->sd_infinite,cur.sd_infinite,MPFR_RNDN); mpfr_set(out->renyi,cur.renyi,MPFR_RNDN); mpfr_set(out->renyi_minus_one,cur.renyi_minus_one,MPFR_RNDN); mpfr_set(out->log2_sd,cur.log2_sd,MPFR_RNDN); mpfr_set(out->log2_renyi_minus_one,cur.log2_renyi_minus_one,MPFR_RNDN); } if(q==max) break;} out->generation_time=(double)(clock()-st)/CLOCKS_PER_SEC; out->denominator_search_complete=out->q?1:0; out->fixed_q_optimizer_certified=out->q?1:0; out->production_eligible=out->q?1:0; sda_generation_result_clear(&cur); return out->q?0:-1; }
 
@@ -39,7 +81,7 @@ static int better_min_q(const sda_generation_result*c,const sda_generation_resul
 static int solve_svp_candidate(const sda_config*cfg,mpfr_t*a,size_t n,mpfr_t eps,sda_generation_result*out){ sda_exact_linf_sda_result svp; sda_exact_linf_sda_init(&svp,n,cfg->mpfr_precision); int rc=sda_exact_linf_sda_solve(a,n,eps,0,&svp); if(rc||!svp.global_svp_certified){ sda_exact_linf_sda_clear(&svp); return rc?rc:-5; }
   out->raw_svp_q=svp.q; out->q=svp.q; out->application_q=svp.q; out->exact_svp_q=svp.q; out->q_bits=sda_bitlength_u128(out->q); out->n=n; out->enumerated_q_count+=svp.q_enumerated; out->raw_svp_vector_available=1; out->exact_linf_svp=svp.exact_linf_svp; out->global_svp_certified=svp.global_svp_certified; out->search_space_exhausted=svp.search_space_exhausted; out->nearest_integer_certified=svp.nearest_integer_certified; out->norm_comparisons_certified=svp.norm_comparisons_certified; out->interval_certified=svp.interval_certified; out->high_precision_verified=svp.high_precision_verified; out->formal_certificate_valid=svp.formal_certificate_valid; out->half_integer_ties=svp.half_integer_ties; out->denominator_from_exact_svp=1; out->fixed_q_optimizer_certified=1; out->denominator_search_complete=0; strcpy(out->solver,"epsilon-svp-generated-min-q"); mpfr_set(out->raw_svp_norm,svp.norm_upper,MPFR_RNDN); mpfr_set(out->epsilon,eps,MPFR_RNDN);
   for(size_t i=0;i<n;i++) out->raw_svp_p[i]=svp.p[i]; sda_u128 sum=0; for(size_t i=0;i<n;i++) sum+=svp.p[i]; out->raw_svp_pmf_valid=(sum==svp.q);
-  sda_fixed_q_minmax(a,n,svp.q,out->p,out->max_scaled_error,out->max_abs_error,out->l1_error); sda_build_cumulative(out->p,n,out->c,&out->q); out->pmf_is_fixed_q_normalized=!out->raw_svp_pmf_valid; out->final_q_from_exact_svp=1; finalize_metrics(a,n,out,cfg->renyi_order); out->baseline_dominance_certified=(out->q < (((sda_u128)1)<<cfg->precision_k)) && baseline_ok(out); out->production_eligible=out->baseline_dominance_certified&&out->global_svp_certified; power_metrics(out); mpfr_div(out->candidate_sd_ratio,out->sd_infinite,out->baseline_sd_infinite,MPFR_RNDN); mpfr_div(out->candidate_renyi_ratio,out->renyi,out->baseline_renyi,MPFR_RNDN); sda_exact_linf_sda_clear(&svp); return out->production_eligible?0:-8; }
+  sda_fixed_q_minmax(a,n,svp.q,out->p,out->max_scaled_error,out->max_abs_error,out->l1_error); sda_build_cumulative(out->p,n,out->c,&out->q); out->pmf_is_fixed_q_normalized=!out->raw_svp_pmf_valid; out->final_q_from_exact_svp=1; finalize_metrics(a,n,out,cfg->renyi_order); out->baseline_dominance_certified=(out->q > 0 && out->q < (((sda_u128)1)<<cfg->precision_k)) && baseline_ok(out) && acceptance_meets_historical(cfg,out->q); out->production_eligible=out->baseline_dominance_certified&&out->global_svp_certified; power_metrics(out); mpfr_div(out->candidate_sd_ratio,out->sd_infinite,out->baseline_sd_infinite,MPFR_RNDN); mpfr_div(out->candidate_renyi_ratio,out->renyi,out->baseline_renyi,MPFR_RNDN); sda_exact_linf_sda_clear(&svp); return out->production_eligible?0:-8; }
 
 int sda_generate_for_config(const sda_config*cfg,const char*solver,sda_generation_result*out){
  size_t n=(size_t)(cfg->support_max-cfg->support_min+1); mpfr_t a[32]; for(size_t i=0;i<n;i++) mpfr_init2(a[i],cfg->mpfr_precision); sda_generate_distribution(cfg,a,n,out->tail_mass,out->gaussian_s); int rc=0;
@@ -51,10 +93,10 @@ int sda_generate_for_config(const sda_config*cfg,const char*solver,sda_generatio
     sda_generation_result best; sda_generation_result_init(&best,cfg->mpfr_precision); best.n=n; mpfr_set(best.tail_mass,out->tail_mass,MPFR_RNDN); mpfr_set(best.gaussian_s,out->gaussian_s,MPFR_RNDN); mpfr_set(best.baseline_sd_support,out->baseline_sd_support,MPFR_RNDN); mpfr_set(best.baseline_sd_infinite,out->baseline_sd_infinite,MPFR_RNDN); mpfr_set(best.baseline_renyi,out->baseline_renyi,MPFR_RNDN);
     int trials=cfg->epsilon_initial_trials>1?cfg->epsilon_initial_trials:1; int rounds=cfg->epsilon_refinement_rounds>=0?cfg->epsilon_refinement_rounds:0; int total=trials*(1<<rounds); if(total<1) total=1; if(cfg->epsilon_max_total_instances>0 && total>cfg->epsilon_max_total_instances) total=cfg->epsilon_max_total_instances;
     for(int t=0;t<total;t++){
-      double frac=(total==1)?0.5:((double)t/(double)(total-1)); double emin=cfg->epsilon_min>0?cfg->epsilon_min:0.5, emax=cfg->epsilon_max>emin?cfg->epsilon_max:emin; double ev=emin*pow(emax/emin,frac);
+      double frac=(total==1)?0.5:((double)t/(double)(total-1)); double emin=cfg->epsilon_min>0?cfg->epsilon_min:0.5, emax=cfg->epsilon_max>emin?cfg->epsilon_max:emin; if(emax<0.70) emax=0.70; double ev=emin*pow(emax/emin,frac);
       mpfr_t eps; mpfr_init2(eps,cfg->mpfr_precision); mpfr_set_d(eps,ev,MPFR_RNDN);
       sda_generation_result cand; sda_generation_result_init(&cand,cfg->mpfr_precision); cand.n=n; mpfr_set(cand.tail_mass,out->tail_mass,MPFR_RNDN); mpfr_set(cand.gaussian_s,out->gaussian_s,MPFR_RNDN); mpfr_set(cand.baseline_sd_support,out->baseline_sd_support,MPFR_RNDN); mpfr_set(cand.baseline_sd_infinite,out->baseline_sd_infinite,MPFR_RNDN); mpfr_set(cand.baseline_renyi,out->baseline_renyi,MPFR_RNDN);
-      int cr=solve_svp_candidate(cfg,a,n,eps,&cand); out->enumerated_q_count += cand.enumerated_q_count;
+      int cr=solve_svp_candidate(cfg,a,n,eps,&cand); out->enumerated_q_count += cand.enumerated_q_count; const char*rr=cr?(cr==-8?"hard_constraint_failed":"solver_failed"):(cand.production_eligible?"none":"hard_constraint_failed"); trace_candidate(cfg,&cand,cr,rr);
       if(!cr && cand.production_eligible && better_min_q(&cand,&best,n)) copy_result_core(&best,&cand,n);
       sda_generation_result_clear(&cand); mpfr_clear(eps);
     }

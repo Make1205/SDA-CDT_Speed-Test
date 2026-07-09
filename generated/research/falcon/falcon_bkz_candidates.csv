@@ -1,0 +1,2 @@
+parameter_set,epsilon,block_size,command,exit_code,q,coefficients,rd,acceptance,status,stderr
+falcon,toy,2,"fplll -a bkz -b 2 /tmp/falcon_toy_basis.txt",0,0,"not-a-falcon-sda-candidate",unavailable,unavailable,coefficient_recovery_not_applicable,""
