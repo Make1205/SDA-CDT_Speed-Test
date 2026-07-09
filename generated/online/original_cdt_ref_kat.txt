@@ -1,5 +1,0 @@
-original_frodo640_table_validate=pass
-original_frodo976_table_validate=pass
-original_frodo1344_table_validate=pass
-original_falcon_gaussian0_constants=pass
-frodo_original_exhaustive_lookup=pass

@@ -1,4 +1,25 @@
-.gitignore
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
 build/
-.vscode/
+dist/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+core
+core.*
+*.log
+*.tmp
+*.bak
+.DS_Store
+offline/generated/**
+!offline/generated/.gitkeep
 
+build-*/

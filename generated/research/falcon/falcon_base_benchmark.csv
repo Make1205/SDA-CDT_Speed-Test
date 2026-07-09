@@ -1,2 +1,0 @@
-table_id,solver,q,q_bits,power2_ceiling,acceptance,rejection_rate,expected_attempts,measured_attempts,expected_random_bits,measured_random_bits,table_bytes,median_cycles_per_sample,MAD,p10,p90,min,max,status
-falcon,unavailable,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,no_valid_table

@@ -1,7 +1,0 @@
-generation_mode=production-auto
-source_is_fixture=false
-generation_timestamp=reproducible
-GMP version=6.3.0
-MPFR version=4.2.1
-FLINT status=dependency unavailable: build with -DSDA_ENABLE_FLINT=ON and install FLINT
-selection_rule=valid table, baseline dominance, q ascending, power2 gap ascending, distance ratios, epsilon, lexicographic p
