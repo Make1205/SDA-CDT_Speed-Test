@@ -1,0 +1,17 @@
+comparison_dimension,scheme,parameter_set,benchmark_kind,batch_size,baseline_sampler,candidate_sampler,baseline_implementation,candidate_implementation,baseline_median_cycles,candidate_median_cycles,speedup_percent,result
+sda-vs-original-ref,Falcon,falcon,end-to-end,1,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,132.831000,183.146000,-37.878959,slower
+sda-vs-original-ref,Falcon,falcon,end-to-end,8,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,162.359000,213.082000,-31.241262,slower
+sda-vs-original-ref,Falcon,falcon,lookup-only,1,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,210.954000,109.055000,48.303896,faster
+sda-vs-original-ref,Falcon,falcon,lookup-only,8,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,110.477000,64.938000,41.220345,faster
+sda-vs-original-ref,Frodo,frodo1344,end-to-end,1,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,95.173000,93.691000,1.557164,faster
+sda-vs-original-ref,Frodo,frodo1344,end-to-end,8,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,78.454000,67.660000,13.758381,faster
+sda-vs-original-ref,Frodo,frodo1344,lookup-only,1,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,87.093000,146.845000,-68.607121,slower
+sda-vs-original-ref,Frodo,frodo1344,lookup-only,8,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,39.104000,44.989000,-15.049611,slower
+sda-vs-original-ref,Frodo,frodo640,end-to-end,1,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,104.964000,94.895000,9.592813,faster
+sda-vs-original-ref,Frodo,frodo640,end-to-end,8,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,69.127000,78.912000,-14.155106,slower
+sda-vs-original-ref,Frodo,frodo640,lookup-only,1,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,207.886000,89.294000,57.046651,faster
+sda-vs-original-ref,Frodo,frodo640,lookup-only,8,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,44.888000,32.707000,27.136428,faster
+sda-vs-original-ref,Frodo,frodo976,end-to-end,1,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,76.626000,89.920000,-17.349203,slower
+sda-vs-original-ref,Frodo,frodo976,end-to-end,8,original-cdt,sda-cdt,original-cdt-ref,sda-cdt-ref,74.608000,75.674000,-1.428801,slower
+sda-vs-original-ref,Frodo,frodo976,lookup-only,1,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,96.373000,113.392000,-17.659510,slower
+sda-vs-original-ref,Frodo,frodo976,lookup-only,8,original-cdt,sda-table-lookup,original-cdt-ref,sda-table-ref,73.823000,32.048000,56.588055,faster

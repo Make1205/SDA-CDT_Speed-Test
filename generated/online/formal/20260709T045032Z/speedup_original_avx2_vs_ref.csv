@@ -1,0 +1,17 @@
+comparison_dimension,scheme,parameter_set,benchmark_kind,batch_size,baseline_sampler,candidate_sampler,baseline_implementation,candidate_implementation,baseline_median_cycles,candidate_median_cycles,speedup_percent,result
+original-avx2-vs-ref,Falcon,falcon,end-to-end,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,132.831000,248.542000,-87.111442,slower
+original-avx2-vs-ref,Falcon,falcon,end-to-end,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,162.359000,141.848000,12.633116,faster
+original-avx2-vs-ref,Falcon,falcon,lookup-only,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,210.954000,246.651000,-16.921699,slower
+original-avx2-vs-ref,Falcon,falcon,lookup-only,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,110.477000,74.416000,32.641183,faster
+original-avx2-vs-ref,Frodo,frodo1344,end-to-end,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,95.173000,70.503000,25.921217,faster
+original-avx2-vs-ref,Frodo,frodo1344,end-to-end,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,78.454000,51.678000,34.129554,faster
+original-avx2-vs-ref,Frodo,frodo1344,lookup-only,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,87.093000,103.647000,-19.007268,slower
+original-avx2-vs-ref,Frodo,frodo1344,lookup-only,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,39.104000,28.178000,27.940876,faster
+original-avx2-vs-ref,Frodo,frodo640,end-to-end,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,104.964000,127.020000,-21.012919,slower
+original-avx2-vs-ref,Frodo,frodo640,end-to-end,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,69.127000,42.705000,38.222402,faster
+original-avx2-vs-ref,Frodo,frodo640,lookup-only,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,207.886000,120.132000,42.212559,faster
+original-avx2-vs-ref,Frodo,frodo640,lookup-only,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,44.888000,25.477000,43.243183,faster
+original-avx2-vs-ref,Frodo,frodo976,end-to-end,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,76.626000,81.164000,-5.922272,slower
+original-avx2-vs-ref,Frodo,frodo976,end-to-end,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,74.608000,44.293000,40.632372,faster
+original-avx2-vs-ref,Frodo,frodo976,lookup-only,1,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,96.373000,115.167000,-19.501313,slower
+original-avx2-vs-ref,Frodo,frodo976,lookup-only,8,original-cdt,original-cdt,original-cdt-ref,original-cdt-avx2,73.823000,30.262000,59.007355,faster

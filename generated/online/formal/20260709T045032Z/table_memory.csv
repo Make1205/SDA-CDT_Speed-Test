@@ -1,0 +1,9 @@
+scheme,parameter_set,table_family,support_length,threshold_count,threshold_encoding,terminal_q_stored,threshold_payload_bytes,full_cumulative_bytes,PMF_bytes,metadata_bytes,actual_static_object_bytes,packed_bits
+Falcon,falcon,original-cdt-table,,,see online manifest,false,171,,,not measured,not measured,1368
+Falcon,falcon,sda-table,,,see online manifest,false,162,,,not measured,not measured,1368
+Frodo,frodo1344,original-cdt-table,,,see online manifest,false,14,,,not measured,not measured,105
+Frodo,frodo1344,sda-table,,,see online manifest,false,4,,,not measured,not measured,35
+Frodo,frodo640,original-cdt-table,,,see online manifest,false,26,,,not measured,not measured,195
+Frodo,frodo640,sda-table,,,see online manifest,false,22,,,not measured,not measured,168
+Frodo,frodo976,original-cdt-table,,,see online manifest,false,22,,,not measured,not measured,165
+Frodo,frodo976,sda-table,,,see online manifest,false,18,,,not measured,not measured,130
