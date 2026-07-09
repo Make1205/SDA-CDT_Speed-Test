@@ -11,11 +11,12 @@ static inline void sdat_u72_to_le9(sdat_u72 x,uint8_t out[9]){ for(int i=0;i<8;i
 typedef int (*sdat_randombytes_fn)(void *ctx, uint8_t *out, size_t out_len);
 typedef enum { SDAT_TYPE_U8=1, SDAT_TYPE_U16=2, SDAT_TYPE_U72=9 } sdat_value_type;
 typedef struct { uint64_t attempts,rejections,random_bytes,random_bits; } sdat_stats;
+typedef struct { uint64_t api_calls,avx2_vector_batches,avx2_vectorized_samples,scalar_tail_samples,fallback_samples; } sdat_avx2_stats;
 typedef struct {
- const char *table_id,*parameter_set,*source_kind,*source_artifact,*source_hash;
+ const char *table_id,*scheme,*parameter_set,*table_family,*source_kind,*source_artifact,*source_hash;
  int support_min,support_max; size_t support_length; sdat_value_type value_type; unsigned denominator_bits,random_draw_bits;
  size_t mass_count,threshold_count; const void *pmf; const void *thresholds; int terminal_threshold_stored;
- const char *zero_semantics,*sign_semantics,*output_semantics; size_t native_table_bytes,fixed_packed_bits;
- sdat_u72 denominator_u72; uint64_t denominator_u64; int available,heuristic_bkz,exact_svp,global_svp_certified;
+ const char *threshold_encoding,*zero_semantics,*sign_semantics,*output_semantics; size_t native_table_bytes,packed_bits;
+ sdat_u72 denominator_u72; uint64_t denominator_u64; int available,source_verified,heuristic_bkz,exact_svp,global_svp_certified;
 } sdat_table;
 #endif

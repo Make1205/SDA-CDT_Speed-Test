@@ -15,7 +15,7 @@ check_include_file(mpfr.h HAVE_MPFR_H)
 set(SDA_HAVE_OFFLINE_DEPS ON)
 if(NOT HAVE_GMP_H OR NOT HAVE_MPFR_H OR NOT GMP_LIB OR NOT MPFR_LIB)
   set(SDA_HAVE_OFFLINE_DEPS OFF)
-  message(WARNING "GMP/MPFR not found; offline targets and legacy tests are disabled, online SDAT targets remain available")
+  message(WARNING "GMP/MPFR not found; offline targets and legacy tests are disabled, online Original CDT/SDA_CDT targets remain available")
 endif()
 if(SDA_ENABLE_FLINT)
   find_library(FLINT_LIB flint)
@@ -78,7 +78,7 @@ if(PYTHON3_EXECUTABLE)
 endif()
 endif() # SDA_HAVE_OFFLINE_DEPS
 
-# Online SDAT/CDT sampler: fixed-width C only, deliberately not linked to offline sda/GMP/MPFR targets.
+# Online Original CDT/SDA_CDT sampler targets: fixed-width C only, deliberately not linked to offline sda/GMP/MPFR targets.
 add_library(sdat_online_common online/common/sdat_tables.c)
 target_include_directories(sdat_online_common PUBLIC online/common)
 target_compile_options(sdat_online_common PRIVATE ${SDA_CFLAGS})

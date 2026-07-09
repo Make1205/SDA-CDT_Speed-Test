@@ -1,0 +1,3 @@
+original_frodo_ref_avx2_cross_kat=pass
+samples_per_parameter=1000000
+batch_tail_covered=true

@@ -1,0 +1,2 @@
+falcon_sda_cdt_ref_avx2_cross_kat=pass
+samples=1000000
