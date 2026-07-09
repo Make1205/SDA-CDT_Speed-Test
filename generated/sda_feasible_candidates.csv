@@ -1,0 +1,1 @@
+parameter_set,epsilon,refinement_level,lattice_hash,solver_status,q,raw_coefficients,global_svp_certified,PMF,compact_q_valid,sd,baseline_sd,sd_improved,renyi,baseline_renyi,renyi_improved,power2_ceiling,power2_gap,acceptance_ratio,rejection_rate,historical_acceptance_baseline,rejection_constraint_passed,expected_attempts,expected_raw_bits,feasible,rejection_reason,selected

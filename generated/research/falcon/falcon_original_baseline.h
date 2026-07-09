@@ -1,0 +1,5 @@
+#ifndef FALCON_ORIGINAL_BASELINE_H
+#define FALCON_ORIGINAL_BASELINE_H
+#define FALCON_ORIGINAL_BASELINE_AVAILABLE 0
+#define FALCON_ORIGINAL_BASELINE_SOURCE "unavailable: official constants not imported"
+#endif

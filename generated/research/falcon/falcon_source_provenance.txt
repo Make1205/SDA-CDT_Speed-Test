@@ -1,0 +1,10 @@
+official_baseline_available=false
+source_search=repository Falcon files plus current config/generation semantics
+fplll_path=/usr/bin/fplll
+fplll_version=fplll 5.4.5
+fplll_help_file=generated/research/falcon/fplll_help.txt
+historical_q_regression_reference=4696835740265763827900
+historical_q_used_as_input=false
+official_source_probe=https://falcon-sign.info/falcon.zip
+official_source_probe_result=failed_connect_403_proxy
+official_source_probe_file=generated/research/falcon/falcon_official_source_probe.txt

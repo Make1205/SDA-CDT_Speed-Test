@@ -1,0 +1,13 @@
+target_distribution_valid=true
+pmf_valid=true
+denominator_valid=true
+support_valid=true
+cumulative_valid=true
+coefficient_provenance_valid=true
+bkz_provenance_valid=true
+interval_post_verification_valid=true
+renyi_requirement_valid=true
+selected_from_feasible_set=true
+historical_q_not_used_as_input=true
+overall_valid=true
+metrics=q=4695688715792059551856;renyi=1.00000000000000000000000107925580721133475710134383882105862;log2_minus_one=-79.6162374216875503699758914512

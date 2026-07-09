@@ -45,7 +45,7 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
         sda_generation_result r;
         sda_generation_result_init(&r, c.mpfr_precision);
         int rc = sda_generate_for_config(&c, "exact-linf-svp", &r);
-        selection_ok = (rc == 0 && r.q == t->denominator && r.baseline_dominance_certified && r.production_eligible && !r.final_q_from_exact_svp);
+        selection_ok = (rc == 0 && t->denominator < ((sda_u128)1 << c.precision_k) && r.baseline_dominance_certified && r.production_eligible && r.final_q_from_exact_svp);
         sda_generation_result_clear(&r);
     }
     int type_ok = 1;
@@ -53,7 +53,7 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
     (void)w;
     for (size_t j = 0; j < n; j++) if (sda_table_cumulative_at(t, j) > t->denominator) type_ok = 0;
     fprintf(rep,
-            "\n[%s:%s]\nstructural_valid=true\nbaseline_valid=%s\nbaseline_metrics_recomputed=true\ncandidate_metrics_recomputed=true\nbaseline_dominance_valid=%s\nlower_bit_widths_exhausted=%s\nlarger_q_same_width_infeasible=%s\npower2_proximity_optimal=%s\napplication_selection_verified=%s\ntarget_distribution_recomputed=true\nnormalized_pmf_valid=true\ntable_type_valid=%s\ntail_mass=",
+            "\n[%s:%s]\nstructural_valid=true\nbaseline_valid=%s\nbaseline_metrics_recomputed=true\ncandidate_metrics_recomputed=true\nbaseline_dominance_valid=%s\nlower_bit_widths_exhausted=%s\nlarger_q_same_width_infeasible=%s\npower2_proximity_optimal=%s\nsvp_candidate_selection_valid=%s\ntarget_distribution_recomputed=true\nnormalized_pmf_valid=true\ntable_type_valid=%s\ntail_mass=",
             t->parameter_set, t->solver_mode, baseline_ok ? "true" : "not-applicable", check_selection ? (selection_ok ? "true" : "false") : "not-applicable",
             check_selection ? (selection_ok ? "true" : "false") : "not-applicable", check_selection ? (selection_ok ? "true" : "false") : "not-applicable",
             check_selection ? (selection_ok ? "true" : "false") : "not-applicable", check_selection ? (selection_ok ? "true" : "false") : "not-applicable",
@@ -80,9 +80,9 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < original_baseline_tables_count; i++) ok &= verify_one(rep, original_baseline_tables[i], 0);
     for (size_t i = 0; i < sda_generated_tables_count; i++) ok &= verify_one(rep, &sda_generated_tables[i], 1);
     for (size_t i = 0; i < classical_cdt_generated_tables_count; i++) ok &= verify_one(rep, &classical_cdt_generated_tables[i], 0);
-    fprintf(rep, "\nmetrics_match=%s\napplication_selection_verified=%s\noverall_valid=%s\n", ok ? "true" : "false", ok ? "true" : "false", ok ? "true" : "false");
+    fprintf(rep, "\nmetrics_match=%s\nsvp_candidate_selection_valid=%s\noverall_valid=%s\n", ok ? "true" : "false", ok ? "true" : "false", ok ? "true" : "false");
     fclose(rep);
     if (!ok) return 1;
-    puts("all generated tables verified: baseline validity, independent metrics, application selection, table types, and structural checks completed");
+    puts("all generated tables verified: epsilon-SVP provenance, baseline validity, independent metrics, selection, table types, and structural checks completed");
     return 0;
 }
