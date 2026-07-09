@@ -1,0 +1,5 @@
+parameter_set,source,q,q_bits,draw_bits,support,PMF hash,cumulative hash,native threshold type,native table bytes,packed bits,reference_available,avx2_available
+frodo640,generated/historical_sda_reference.csv q-only,14534,14,14,missing,missing,missing,uint16_t,0,0,false,false
+frodo976,generated/historical_sda_reference.csv q-only,7442,13,13,missing,missing,missing,uint16_t,0,0,false,false
+frodo1344,src/sda_config.c q-only,102,7,7,missing,missing,missing,uint16_t,0,0,false,false
+falcon,generated/research/falcon/falcon_sdat_selected.h,4695688715792059551856,72,72,0..18,15cb40167eda4761313ad83a6779b4657a7340625dac863a48843822e5802caa,13996a00c89a842e899ed50451d75ade30c51850fc97329d1dd0e579bf373e02,sdat_u72,171,1368,true,true

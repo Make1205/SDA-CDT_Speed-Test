@@ -1,0 +1,8 @@
+#include "sdat_ref.h"
+#include "sdat_avx2.h"
+#include <stdio.h>
+#include <string.h>
+typedef struct{uint64_t s;} rng;
+static int rb(void*ctx,uint8_t*out,size_t n){rng*r=ctx;for(size_t i=0;i<n;i++){r->s=r->s*6364136223846793005ULL+1442695040888963407ULL;out[i]=(uint8_t)(r->s>>56);}return 0;}
+static int failrb(void*ctx,uint8_t*out,size_t n){(void)ctx;(void)out;(void)n;return -9;}
+int main(void){ if(sdat_table_frodo640.available||sdat_table_frodo976.available||sdat_table_frodo1344.available) return 1; if(sdat_table_validate(&sdat_table_falcon_base)) return 2; uint8_t le[9]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0x7f}; sdat_u72 u=sdat_u72_from_le9(le); if(u.hi!=0x7f||u.lo!=UINT64_MAX) return 3; if(!sdat_u72_ge((sdat_u72){5,1},(sdat_u72){UINT64_MAX,0})) return 4; const sdat_u72 *th=(const sdat_u72*)sdat_table_falcon_base.thresholds; if(sdat_ref_lookup_u72((sdat_u72){0,0},th,18)!=0) return 5; if(sdat_ref_lookup_u72(th[0],th,18)!=1) return 6; if(sdat_ref_lookup_u72((sdat_u72){10215721069833441391ULL,254},th,18)!=18) return 7; rng r1={1},r2={1}; uint32_t a[257],b[257]; if(sdat_ref_sample_batch(&sdat_table_falcon_base,rb,&r1,a,257)) return 8; if(sdat_avx2_cpu_supported()){sdat_avx2_path_counter_reset(); if(sdat_avx2_sample_batch(&sdat_table_falcon_base,rb,&r2,b,257))return 9; if(memcmp(a,b,sizeof a))return 10; if(!sdat_avx2_path_counter())return 11;} uint32_t x; if(sdat_ref_sample(&sdat_table_falcon_base,failrb,0,&x)!=-2)return 12; if(sdat_ref_sample(&sdat_table_frodo640,rb,&r1,&x)==0)return 13; puts("sdat online tests passed; Frodo PMF/cumulative unavailable by audit"); return 0; }

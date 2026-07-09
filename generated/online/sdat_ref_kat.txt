@@ -1,0 +1,3 @@
+falcon_table_validate=pass
+u72_compare_kat=pass
+frodo_status=blocked_missing_complete_pmf_cumulative
