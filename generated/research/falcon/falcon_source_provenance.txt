@@ -1,9 +1,10 @@
-source_search=current repository rg for Falcon sampler constants; official Falcon reference source not vendored
+official_baseline_available=false
+source_search=repository Falcon files plus current config/generation semantics
 fplll_path=/usr/bin/fplll
 fplll_version=fplll 5.4.5
-toy_bkz_command=fplll -a bkz -b 2 /tmp/falcon_toy_basis.txt
-toy_bkz_exit_code=0
-toy_input_sha256=ecec30ddc09012ab12d007ac01533a3b172bac00fce4611de8eefa675671f070
-toy_output_sha256=286c3af9288f09b2655c42d74e1e0b78917a9796dd392ef43572e799d54318b5
-falcon_official_baseline_importer=unresolved
-reason=repository contains only non-monotone rejection fixture and no validated official Falcon sampler constants
+fplll_help_file=generated/research/falcon/fplll_help.txt
+historical_q_regression_reference=4696835740265763827900
+historical_q_used_as_input=false
+official_source_probe=https://falcon-sign.info/falcon.zip
+official_source_probe_result=failed_connect_403_proxy
+official_source_probe_file=generated/research/falcon/falcon_official_source_probe.txt

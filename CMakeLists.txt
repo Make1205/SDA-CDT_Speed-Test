@@ -68,3 +68,7 @@ add_executable(test_nonmonotone_fixture test/test_nonmonotone_fixture.c test/fix
 target_link_libraries(test_nonmonotone_fixture PRIVATE sda)
 target_compile_options(test_nonmonotone_fixture PRIVATE ${SDA_CFLAGS})
 add_test(NAME test_nonmonotone_fixture COMMAND test_nonmonotone_fixture)
+find_program(PYTHON3_EXECUTABLE NAMES python3 /usr/bin/python3)
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME test_falcon_offline_pipeline COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/test/test_falcon_offline_pipeline.py)
+endif()

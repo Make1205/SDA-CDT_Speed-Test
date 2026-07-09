@@ -1,0 +1,53 @@
+Usage: fplll [options] [file]
+List of options:
+  -a [lll|bkz|hkz|svp|sdb|sld|cvp]
+       lll = LLL-reduce the input matrix (default)
+       bkz = BKZ-reduce the input matrix
+       hkz = HKZ-reduce the input matrix
+       svp = compute a shortest non-zero vector of the lattice
+       sdb = reduce the input matrix using the self dual BKZ variant
+       sld = slide reduce the input matrix
+       cvp = compute the vector in the input lattice closest to an input vector
+       hlll = HLLL-reduce the input matrix
+  -v
+       Enable verbose mode
+  -nolll
+       Does not apply initial LLL-reduction (for bkz, hkz and svp)
+  -c <c>
+       An arbitrary double constant > 0 for HLLL (default=0.1)
+  -r <size>
+       Was the number of rows (ignored)
+  -d <delta> (default=0.99; alias to -delta <delta>)
+  -e <eta> (default=0.51; alias to -eta <eta>)
+  -t <theta> (default=0.001; alias to -theta <theta>)
+  -l <lovasz>
+       If <lovasz> != 0, Lovasz's condition, otherwise, Siegel's condition
+  -f [mpfr|dd|qd|dpe|double|longdouble]
+       Floating-point type in LLL
+  -p <precision>
+       Floating-point precision (only with -f mpfr)
+  -z [mpz|int|long|double]
+       Integer type in LLL (default: mpz; long is an alias to int)
+  -m [wrapper|fast|heuristic|proved]
+       LLL version (default: wrapper)
+  -y
+       Enable early reduction
+  -b <block_size>
+       Size of BKZ blocks
+  -bkzmaxloops <loops>
+       Maximum number of full loop iterations
+  -bkzmaxtime <time>
+        Stops after <time> seconds
+  -bkzautoabort
+        Stops when the average slope does not decrease fast enough
+  -s <filename.json>
+        Load BKZ strategies from filename
+  -bkzghbound <factor>
+        Multiplies the Gaussian heuristic by <factor> (of float type)
+  -bkzboundedlll
+        Restricts the LLL call
+  -bkzdumpgso <file_name>
+        Dumps the log of the Gram-Schmidt vectors in specified file
+  -of [b|c|s|t|u|v|bk|uk|vk]
+        Output formats.
+Please refer to https://github.com/fplll/fplll/README.md for more information.
