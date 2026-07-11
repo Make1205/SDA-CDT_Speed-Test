@@ -38,3 +38,14 @@ cmake --build build-online --target test_frodo_sample_n benchmark_frodo_sample_n
 ctest --test-dir build-online -R frodo_sample_n --output-on-failure
 ./build-online/benchmark_frodo_sample_n
 ```
+
+
+### Frodo sampler optimization profiles and benchmark passes
+
+`benchmark_frodo_sample_n` now separates `measurement_pass=timing` from `measurement_pass=metrics`. Timing rows call SDA samplers with `stats = NULL`; attempts, rejections, raw-bit counters, source-byte counters, and refill counters are collected only by the untimed metrics pass over identical input buffers, and the benchmark checks that timing and metrics checksums match.
+
+Two SDA profiles are reported. `packed-bit` is the bit-efficient profile: it consumes an LSB-first 7/13/14-bit packed reservoir and preserves leftover bits to approach theoretical raw-bit use. `word-oriented` is the cycle-efficient upper-bound profile: candidates come from prefilled 16-bit words using rejection, and an accepted candidate then consumes a separate sign word bit. Both profiles are unbiased, do not use modulo reduction, and target the same SDA rational distribution, but their randomness metrics are not interchangeable.
+
+The Frodo hot path now has specialized extractors for 1, 7, 13, and 14 bits and specialized per-parameter samplers for Frodo-640, Frodo-976, and Frodo-1344, so the sample loop avoids per-sample table-type dispatch, runtime q/bits reloads, and stats instrumentation in timing mode. Component rows include `bitreader-only`, `candidate-extraction-only`, `uniform-bounded-only`, `sign-extraction-only`, `lookup-only`, `sign-application-only`, and `full-sample-n-core`.
+
+Table-size reporting distinguishes `full_exported_table_bits` (the paper/exported cumulative table width, including terminal/export conventions) from `online_stored_threshold_bits` (thresholds actually stored online after terminal-threshold omission). The documented 192/165, 162/127, and 104/33 values are the ideal variable packed full/exported-table figures; online storage also reports fixed-width packed bits and native storage bytes. These sampler benchmarks do not include PRG generation or any FrodoKEM KeyGen/Encaps/Decaps work. Current smoke results should be read as sampler-only evidence; if SDA does not beat Original, the bottleneck is reported as extraction/rejection/sign handling rather than hidden.
