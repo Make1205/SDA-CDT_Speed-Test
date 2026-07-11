@@ -20,3 +20,7 @@ cmake --build build-benchmark --target benchmark_frodo_sample_n benchmark_sdat_o
 
 Run scripts from any directory; outputs default to `build/benchmark-results/`
 or an environment-provided output directory. Do not commit transient CSV output.
+
+## Falcon base-sampler benchmark
+
+`benchmark_falcon_base_sampler` compares `falcon_original_portable` and `falcon_sda_portable` in `mapping_only` and `end_to_end` modes. Both variants use the same deterministic random-byte backend, report attempts/rejections/source bits/source bytes, and keep raw CSV output outside tracked source paths by default.

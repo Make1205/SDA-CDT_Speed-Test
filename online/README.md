@@ -19,3 +19,7 @@ ctest --test-dir build-online --output-on-failure
 ```
 
 Build benchmarks separately with `-DSDA_BUILD_BENCHMARKS=ON` and use `benchmark/scripts/`.
+
+## Falcon base sampler
+
+`online/falcon/falcon_base_sampler.{c,h}` implements only the portable half-Gaussian base sampler for support `{0,...,18}`. The Original path uses the official Falcon 72-bit CDT table already recorded in the production table metadata, and the SDA path uses the frozen Falcon SDA table with exact bounded-uniform rejection over its 72-bit denominator.

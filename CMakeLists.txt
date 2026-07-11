@@ -82,8 +82,8 @@ endif() # SDA_HAVE_OFFLINE_DEPS
 add_library(sdat_online_common online/common/sdat_tables.c)
 target_include_directories(sdat_online_common PUBLIC online/common)
 target_compile_options(sdat_online_common PRIVATE ${SDA_CFLAGS})
-add_library(sdat_online_ref online/frodo/sdat_ref.c online/common/sdat_bitreader.c online/frodo/frodo_sample_n.c online/frodo/frodo_sample_n_fast.c)
-target_include_directories(sdat_online_ref PUBLIC online/frodo online/common)
+add_library(sdat_online_ref online/frodo/sdat_ref.c online/common/sdat_bitreader.c online/frodo/frodo_sample_n.c online/frodo/frodo_sample_n_fast.c online/falcon/falcon_base_sampler.c)
+target_include_directories(sdat_online_ref PUBLIC online/frodo online/falcon online/common)
 target_link_libraries(sdat_online_ref PUBLIC sdat_online_common)
 target_compile_options(sdat_online_ref PRIVATE ${SDA_CFLAGS} -O3)
 add_library(sdat_online_avx2 online/falcon/sdat_avx2.c online/frodo/frodo_sample_n_avx2.c)
@@ -105,6 +105,11 @@ target_include_directories(test_frodo_sample_n PRIVATE online/frodo online/falco
 target_link_libraries(test_frodo_sample_n PRIVATE sdat_online_avx2 sdat_online_ref)
 add_test(NAME frodo_sample_n COMMAND test_frodo_sample_n)
 
+add_executable(test_falcon_base_sampler online/tests/test_falcon_base_sampler.c)
+target_include_directories(test_falcon_base_sampler PRIVATE online/frodo online/falcon online/common)
+target_link_libraries(test_falcon_base_sampler PRIVATE sdat_online_ref)
+add_test(NAME falcon_base_sampler COMMAND test_falcon_base_sampler)
+
 
 if(SDA_BUILD_BENCHMARKS)
 add_executable(benchmark_sdat_online benchmark/frodo/benchmark_sdat.c)
@@ -116,4 +121,9 @@ add_executable(benchmark_frodo_sample_n benchmark/frodo/benchmark_frodo_sample_n
 target_include_directories(benchmark_frodo_sample_n PRIVATE online/frodo online/falcon online/common)
 target_link_libraries(benchmark_frodo_sample_n PRIVATE sdat_online_avx2 sdat_online_ref)
 target_compile_options(benchmark_frodo_sample_n PRIVATE ${SDA_CFLAGS} -O3)
+
+add_executable(benchmark_falcon_base_sampler benchmark/falcon/benchmark_falcon_base_sampler.c)
+target_include_directories(benchmark_falcon_base_sampler PRIVATE online/frodo online/falcon online/common)
+target_link_libraries(benchmark_falcon_base_sampler PRIVATE sdat_online_ref m)
+target_compile_options(benchmark_falcon_base_sampler PRIVATE ${SDA_CFLAGS} -O3)
 endif()
