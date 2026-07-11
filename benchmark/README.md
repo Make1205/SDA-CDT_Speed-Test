@@ -24,3 +24,7 @@ or an environment-provided output directory. Do not commit transient CSV output.
 ## Falcon base-sampler benchmark
 
 `benchmark_falcon_base_sampler` compares `falcon_original_portable` and `falcon_sda_portable` in `mapping_only` and `end_to_end` modes. Both variants use the same deterministic random-byte backend, report attempts/rejections/source bits/source bytes, and keep raw CSV output outside tracked source paths by default.
+
+## Reporting policy
+
+Use `paper-primary` for portable/reference Original-vs-SDA rows at the same scope (`mapping_only` or `end_to_end`). Treat AVX2 rows as `future-work`: valid for internal diagnostics, but not as the current paper-primary comparison. Do not mix word-oriented speed with packed-bit physical-source accounting without labelling the trade-off.

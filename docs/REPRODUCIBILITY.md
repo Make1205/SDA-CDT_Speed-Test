@@ -38,3 +38,7 @@ cmake --build build-benchmark --target benchmark_falcon_base_sampler -j
 ```
 
 This benchmark covers only the portable half-Gaussian base sampler and does not include full Falcon signing.
+
+## Paper-primary benchmark interpretation
+
+For the current paper draft, report portable/reference Original vs portable/reference SDA-CDT first. AVX2 benchmark rows are reproducible diagnostics and future-work data, not the main speedup claim. Keep `mapping_only` and `end_to_end` summaries separate.

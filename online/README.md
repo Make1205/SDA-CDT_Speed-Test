@@ -23,3 +23,7 @@ Build benchmarks separately with `-DSDA_BUILD_BENCHMARKS=ON` and use `benchmark/
 ## Falcon base sampler
 
 `online/falcon/falcon_base_sampler.{c,h}` implements only the portable half-Gaussian base sampler for support `{0,...,18}`. The Original path uses the official Falcon 72-bit CDT table already recorded in the production table metadata, and the SDA path uses the frozen Falcon SDA table with exact bounded-uniform rejection over its 72-bit denominator.
+
+## Reference vs AVX2 reporting
+
+Portable/reference samplers are the paper-primary comparison path. AVX2 remains available for correctness and future optimization work but should not be mixed with reference rows in the main speedup table.

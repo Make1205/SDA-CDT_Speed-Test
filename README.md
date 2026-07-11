@@ -56,3 +56,7 @@ Production runtime tables are the definitions in `online/common/sdat_tables.c` a
 ## Falcon base sampler
 
 The online Falcon addition is limited to the portable C half-Gaussian base sampler over support `{0,...,18}` with center 0 and sigma0=1.8205. It exposes Original and SDA base-sampler APIs for correctness tests and benchmarks only; it does not implement samplerZ, BerExp, FFT sampling, signing, verification, keygen, or any full Falcon-512/Falcon-1024 API. Benchmark code for the base sampler lives in `benchmark/falcon/`.
+
+## Reporting policy
+
+Paper-primary speed results should compare portable/reference Original against portable/reference SDA-CDT at the same benchmark scope. AVX2 implementations and cross-ISA comparisons are retained for correctness checks and future optimization work, but they are not the current paper-primary speedup claim.
