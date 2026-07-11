@@ -6,6 +6,14 @@ typedef struct {
   int certified, epsilon_derived, exact_svp_shortest;
   const char *id;
 } cand;
+static int support_contiguous(const uint64_t *p, unsigned n){
+  int seen_zero_tail=0;
+  for(unsigned i=1;i<n;i++){
+    if(p[i]==0) seen_zero_tail=1;
+    else if(seen_zero_tail) return 0;
+  }
+  return 1;
+}
 
 static unsigned bits(uint64_t q){ unsigned b=0; uint64_t m=q-1; while(m){b++;m>>=1;} return b?b:1; }
 static uint64_t ceil_pow2(uint64_t q){ return 1ull<<bits(q); }
@@ -51,5 +59,7 @@ int main(void){
   cand arr1[3]={small,close,elog}; cand best=arr1[0]; for(int i=1;i<3;i++) if(better(arr1[i],best,orig)) best=arr1[i];
   cand arr2[3]={elog,small,close}; cand best2=arr2[0]; for(int i=1;i<3;i++) if(better(arr2[i],best2,orig)) best2=arr2[i]; if(strcmp(best.id,best2.id))return 13;
   cand frodo976={7442,1,2000,1,2000,1,1,1,"frodo976"}; cand frodo1344={102,1,2000,1,2000,1,1,1,"frodo1344"}; if(frodo976.q!=7442 || frodo1344.q!=102)return 14;
+  uint64_t tail_ok[5]={10,4,1,0,0}; if(!support_contiguous(tail_ok,5))return 15;
+  uint64_t hole[5]={10,4,0,1,0}; if(support_contiguous(hole,5))return 16;
   return 0;
 }

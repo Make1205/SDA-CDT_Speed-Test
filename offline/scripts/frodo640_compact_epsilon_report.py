@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 from dataclasses import dataclass
 from decimal import Decimal, getcontext
 from pathlib import Path
@@ -68,6 +69,52 @@ class Candidate:
     rejection_reason: str
 
     @property
+    def masses(self) -> tuple[int, ...]:
+        return tuple(int(x) for x in self.pmf.split())
+
+    @property
+    def pmf_hash(self) -> str:
+        return hashlib.sha256(self.pmf.encode("utf-8")).hexdigest()[:16]
+
+    @property
+    def mass_sum_ok(self) -> bool:
+        return sum(self.masses) == self.q
+
+    @property
+    def nonnegative_ok(self) -> bool:
+        return all(x >= 0 for x in self.masses)
+
+    @property
+    def effective_support_max(self) -> int:
+        m = self.masses
+        for i in range(len(m) - 1, -1, -1):
+            if m[i] != 0:
+                return i
+        return 0
+
+    @property
+    def tail_zero_count(self) -> int:
+        return max(0, len(self.masses) - 1 - self.effective_support_max)
+
+    @property
+    def support_contiguous(self) -> bool:
+        seen_zero = False
+        for x in self.masses[1:]:
+            if x == 0:
+                seen_zero = True
+            elif seen_zero:
+                return False
+        return True
+
+    @property
+    def support_centered(self) -> bool:
+        return bool(self.masses) and self.masses[0] >= 0
+
+    @property
+    def support_ok(self) -> bool:
+        return self.nonnegative_ok and self.mass_sum_ok and self.support_centered and self.support_contiguous
+
+    @property
     def b(self) -> int:
         return b_width(self.q)
 
@@ -111,25 +158,44 @@ class Candidate:
     def certified(self) -> bool:
         return self.global_svp and self.compact_q_valid and 0 < self.q < ORIGINAL_Q
 
-    @property
-    def hard_ok(self) -> bool:
-        return self.certified and self.sd_ok and self.rd_ok and self.trace_feasible
+    def in_theorem_interval(self, eps_lo: Decimal, eps_hi: Decimal) -> bool:
+        e = d(self.epsilon)
+        return eps_lo <= e <= eps_hi
+
+    def relaxed_ok(self) -> bool:
+        return self.certified and self.support_ok and self.sd_ok and self.rd_ok
+
+    def candidate_class(self, eps_lo: Decimal, eps_hi: Decimal) -> str:
+        if self.relaxed_ok() and self.in_theorem_interval(eps_lo, eps_hi) and self.trace_feasible:
+            return "theorem-aligned-certified"
+        if self.relaxed_ok():
+            return "exact-svp-derived-post-verified"
+        return "rejected"
 
     @property
-    def status(self) -> str:
+    def hard_ok(self) -> bool:
+        return self.relaxed_ok()
+
+    def status(self, eps_lo: Decimal, eps_hi: Decimal) -> str:
+        if not (Decimal(0) < d(self.epsilon) < Decimal(1)):
+            return "rejected:epsilon_outside_relaxed_range"
         if not (0 < self.q < ORIGINAL_Q):
             return "rejected:q_not_lt_2^15"
         if not self.global_svp:
             return "rejected:not_global_svp_certified"
         if not self.compact_q_valid:
             return "rejected:invalid_pmf_or_q"
+        if not self.nonnegative_ok:
+            return "rejected:negative_mass"
+        if not self.mass_sum_ok:
+            return "rejected:normalization_failure"
+        if not self.support_contiguous:
+            return "rejected:support_hole"
         if not self.sd_ok:
             return "rejected:sd_baseline_failure"
         if not self.rd_ok:
             return "rejected:rd_baseline_failure"
-        if not self.trace_feasible:
-            return "rejected:production_feasible_false"
-        return "eligible"
+        return self.candidate_class(eps_lo, eps_hi)
 
 
 def gap_rel_less(a: Candidate, b: Candidate) -> bool:
@@ -150,15 +216,22 @@ def better(a: Candidate, b: Candidate) -> bool:
         return a.hard_ok
     if not a.hard_ok:
         return False
-    if a.b != b.b:
-        return a.b < b.b
-    if gap_rel_less(a, b):
-        return True
-    if gap_rel_less(b, a):
-        return False
     if elog_less(a, b):
         return True
     if elog_less(b, a):
+        return False
+    if a.b != b.b:
+        return a.b < b.b
+    # Table-size tie-break: the online table omits the terminal threshold, so
+    # the effective nonzero support controls stored thresholds for relaxed
+    # candidates with contiguous zero tails.
+    if (a.effective_support_max + 1) * a.b != (b.effective_support_max + 1) * b.b:
+        return (a.effective_support_max + 1) * a.b < (b.effective_support_max + 1) * b.b
+    if a.effective_support_max != b.effective_support_max:
+        return a.effective_support_max < b.effective_support_max
+    if gap_rel_less(a, b):
+        return True
+    if gap_rel_less(b, a):
         return False
     if a.q != b.q:
         return a.q < b.q
@@ -211,12 +284,13 @@ def load_trace(path: Path) -> list[Candidate]:
 
 
 def dedup_by_q(cands: Iterable[Candidate]) -> list[Candidate]:
-    best: dict[int, Candidate] = {}
+    best: dict[tuple[int, str, int], Candidate] = {}
     for c in cands:
-        old = best.get(c.q)
+        key = (c.q, c.pmf_hash, c.effective_support_max)
+        old = best.get(key)
         if old is None or better(c, old) or (not old.hard_ok and selector_key(c) < selector_key(old)):
-            best[c.q] = c
-    return sorted(best.values(), key=lambda c: (c.b, Decimal(c.gap) / Decimal(c.Q), c.q, d(c.epsilon)))
+            best[key] = c
+    return sorted(best.values(), key=lambda c: (c.b, Decimal(c.gap) / Decimal(c.Q), c.q, c.pmf_hash, d(c.epsilon)))
 
 
 def frontier(cands: list[Candidate]) -> list[Candidate]:
@@ -231,15 +305,22 @@ def fmt(x: Decimal) -> str:
     return format(x, ".18E")
 
 
-def write_frontier(path: Path, cands: list[Candidate]) -> None:
-    fields = ["epsilon","q","b","next_power_of_two","gap_abs","gap_rel","acceptance","expected_attempts","expected_candidate_bits","expected_logical_bits","packed_expected_source_bits","word_expected_source_bits","SD_inf","RD","global_svp_certified","formal_certificate_valid","baseline_dominance_certified","high_precision_verified","interval_certified","candidate_status","selection_reason"]
+def write_frontier(path: Path, cands: list[Candidate], eps_lo: Decimal, eps_hi: Decimal) -> None:
+    fields = ["epsilon","candidate_class","q","pmf_hash","effective_support_max","effective_support_size","tail_zero_count","support_is_centered","support_is_contiguous","b","next_power_of_two","gap_abs","gap_rel","acceptance","expected_attempts","expected_candidate_bits","expected_logical_bits","packed_expected_source_bits","word_expected_source_bits","packed_table_bits","native_table_bytes","tail_mass_removed","support_truncation_sd_contribution","rational_approximation_sd_contribution","final_sd","final_rd","SD_inf","RD","global_svp_certified","formal_certificate_valid","baseline_dominance_certified","high_precision_verified","interval_certified","candidate_status","selection_reason"]
     with path.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         for c in cands:
             w.writerow({
                 "epsilon": c.epsilon,
+                "candidate_class": c.candidate_class(eps_lo, eps_hi),
                 "q": c.q,
+                "pmf_hash": c.pmf_hash,
+                "effective_support_max": c.effective_support_max,
+                "effective_support_size": c.effective_support_max + 1,
+                "tail_zero_count": c.tail_zero_count,
+                "support_is_centered": str(c.support_centered).lower(),
+                "support_is_contiguous": str(c.support_contiguous).lower(),
                 "b": c.b,
                 "next_power_of_two": c.Q,
                 "gap_abs": c.gap,
@@ -250,14 +331,26 @@ def write_frontier(path: Path, cands: list[Candidate]) -> None:
                 "expected_logical_bits": fmt(c.expected_logical_bits),
                 "packed_expected_source_bits": fmt(c.expected_logical_bits),
                 "word_expected_source_bits": fmt(c.word_expected_source_bits),
+                "packed_table_bits": (c.effective_support_max + 1) * c.b,
+                "native_table_bytes": (c.effective_support_max + 1) * (1 if c.q <= 255 else 2),
+                # The trace carries final SD/RD against the full target
+                # distribution, but not the ideal per-coordinate tail masses
+                # needed to decompose truncation vs rational-approximation
+                # terms.  Keep this explicit rather than confusing tail-zero
+                # count with probability mass.
+                "tail_mass_removed": "not_decomposed_from_trace",
+                "support_truncation_sd_contribution": "not_decomposed_from_trace",
+                "rational_approximation_sd_contribution": "not_decomposed_from_trace",
+                "final_sd": fmt(c.sd),
+                "final_rd": fmt(c.rd),
                 "SD_inf": fmt(c.sd),
                 "RD": fmt(c.rd),
                 "global_svp_certified": str(c.global_svp).lower(),
                 "formal_certificate_valid": str(c.global_svp).lower(),
-                "baseline_dominance_certified": str(c.trace_feasible and c.sd_ok and c.rd_ok).lower(),
+                "baseline_dominance_certified": str(c.sd_ok and c.rd_ok).lower(),
                 "high_precision_verified": str(c.global_svp).lower(),
                 "interval_certified": str(c.global_svp).lower(),
-                "candidate_status": c.status,
+                "candidate_status": c.status(eps_lo, eps_hi),
                 "selection_reason": "epsilon-derived trace candidate; no production replacement unless eligible and strictly better than incumbent",
             })
 
@@ -291,6 +384,8 @@ def write_report(path: Path, all_rows: list[Candidate], uniq: list[Candidate], f
         f.write("hidden_target_q_detected=false in solve_svp_candidate path (initial_q=0)\n")
         f.write(f"epsilon_rows={len(all_rows)}\n")
         f.write(f"distinct_q_count={len(uniq)}\n")
+        f.write(f"theorem_aligned_candidate_count={sum(1 for c in uniq if c.candidate_class(eps_lo, eps_hi) == 'theorem-aligned-certified')}\n")
+        f.write(f"post_verified_candidate_count={sum(1 for c in uniq if c.candidate_class(eps_lo, eps_hi) == 'exact-svp-derived-post-verified')}\n")
         f.write(f"eligible_candidate_count={len(eligible)}\n")
         f.write(f"pareto_frontier_count={len(front)}\n")
         f.write(f"natural_b13_candidate={str(b13).lower()}\n")
@@ -302,10 +397,10 @@ def write_report(path: Path, all_rows: list[Candidate], uniq: list[Candidate], f
         f.write(f"incumbent_expected_logical_bits={fmt(incumbent.expected_logical_bits)}\n")
         f.write("\nPareto frontier:\n")
         for c in front:
-            f.write(f"epsilon={c.epsilon} q={c.q} b={c.b} gap_rel={fmt(Decimal(c.gap)/Decimal(c.Q))} acceptance={fmt(c.acceptance)} expected_logical_bits={fmt(c.expected_logical_bits)} SD={fmt(c.sd)} RD={fmt(c.rd)} status={c.status}\n")
+            f.write(f"epsilon={c.epsilon} class={c.candidate_class(eps_lo, eps_hi)} q={c.q} pmf_hash={c.pmf_hash} support={c.effective_support_max} tail_zeros={c.tail_zero_count} b={c.b} gap_rel={fmt(Decimal(c.gap)/Decimal(c.Q))} acceptance={fmt(c.acceptance)} expected_logical_bits={fmt(c.expected_logical_bits)} SD={fmt(c.sd)} RD={fmt(c.rd)} status={c.status(eps_lo, eps_hi)}\n")
         f.write("\nRejected candidate reasons by distinct q:\n")
         for c in uniq:
-            f.write(f"q={c.q} epsilon={c.epsilon} status={c.status} trace_reason={c.rejection_reason}\n")
+            f.write(f"q={c.q} pmf_hash={c.pmf_hash} epsilon={c.epsilon} status={c.status(eps_lo, eps_hi)} trace_reason={c.rejection_reason}\n")
         if recommended:
             f.write(f"\nrecommended_q={recommended.q}\nstrictly_better_than_incumbent={str(strictly_better).lower()}\n")
         else:
@@ -356,7 +451,7 @@ def main() -> int:
         if p.is_file() and p.name in obsolete_names:
             p.unlink()
             deleted.append(p)
-    write_frontier(frontier_path, front)
+    write_frontier(frontier_path, front, eps_lo, eps_hi)
     write_report(report_path, all_rows, uniq, front, k, n, eps_lo, eps_hi)
     write_cleanup(cleanup_path, out, [frontier_path, report_path, cleanup_path], deleted)
     print(f"wrote {frontier_path}")
