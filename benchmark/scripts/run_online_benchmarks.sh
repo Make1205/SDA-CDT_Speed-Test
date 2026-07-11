@@ -6,7 +6,7 @@ REPETITIONS=${ONLINE_BENCH_REPETITIONS:-21}
 SAMPLES=${ONLINE_BENCH_SAMPLES:-1000000}
 WARMUP=${ONLINE_BENCH_WARMUP:-100000}
 BATCHES=${ONLINE_BENCH_BATCH_SIZES:-1,4,8,16,64,256,1024}
-OUT_BASE=${ONLINE_BENCH_OUTPUT_DIR:-$ROOT/offline/generated/online/formal}
+OUT_BASE=${ONLINE_BENCH_OUTPUT_DIR:-$ROOT/build/benchmark-results/online-formal}
 SKIP_TESTS=0; SKIP_LOOKUP=0; SKIP_E2E=0; QUICK=0; FORMAL=1; FORCE=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -84,6 +84,6 @@ RAW="$OUT/raw_all.csv"
 "${TASKSET[@]}" "$BENCH" > "$RAW"
 awk -F, 'NR==1 || $6=="lookup-only"' "$RAW" > "$OUT/lookup_raw.csv"
 awk -F, 'NR==1 || $6=="end-to-end"' "$RAW" > "$OUT/end_to_end_raw.csv"
-python3 "$ROOT/offline/scripts/summarize_online_benchmarks.py" --raw "$RAW" --out-dir "$OUT" $([ "$FORMAL" -eq 1 ] && echo --formal || true) $([ "$QUICK" -eq 1 ] && echo --quick || true)
+python3 "$ROOT/benchmark/scripts/summarize_online_benchmarks.py" --raw "$RAW" --out-dir "$OUT" $([ "$FORMAL" -eq 1 ] && echo --formal || true) $([ "$QUICK" -eq 1 ] && echo --quick || true)
 echo "$OUT" > "$OUT_BASE/latest.txt"
 echo "formal_artifact_dir=$OUT"

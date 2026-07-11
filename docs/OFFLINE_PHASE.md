@@ -1,16 +1,7 @@
-# Offline phase
+# Offline Phase
 
-The offline phase builds target distributions, searches denominators/candidates, verifies metrics, and exports reviewed online tables.
+The offline phase owns table generation, exact-SVP/SDA solving, PMF/CDF/threshold export, certificate production, and verification. It does not contain performance benchmarks; benchmark sources and scripts live under `benchmark/`.
 
-Minimal example:
+Frodo production tables are frozen for the default workflow: Frodo-640 q=14534, Frodo-976 q=7442, and Frodo-1344 q=102. Future epsilon-driven table research must run outside the default production workflow and must not overwrite reviewed production artifacts.
 
-```sh
-cmake -S . -B build-offline -DCMAKE_BUILD_TYPE=Release
-cmake --build build-offline --target generate_sdat verify_sdat -j
-./build-offline/generate_sdat --config offline/configs/frodo640.conf --solver exact-denominator --reproducible
-./build-offline/verify_sdat --all
-```
-
-Frodo exact paths include exact-denominator search and SDA-specialized exact `l_infinity` SVP/certificate code in `offline/common/sda_exact_linf*.c`. Falcon research generation in `offline/scripts/generate_falcon_sdat.py` is heuristic epsilon-BKZ/`l_2` work and is kept separate from exact `l_infinity` SVP claims.
-
-All regenerated outputs should be written below `offline/generated/`.
+Offline verification entry points remain `generate_sdat`, `verify_sdat`, and the offline correctness tests. Generated research traces, candidate CSV files, solver logs, and temporary certificates belong in ignored workspaces and are not production inputs.

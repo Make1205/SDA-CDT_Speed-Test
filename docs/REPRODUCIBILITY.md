@@ -1,20 +1,44 @@
 # Reproducibility
 
-Regenerated research files are ignored under `offline/generated/`. To reproduce a small Frodo candidate and verification run:
+## Offline verification
 
 ```sh
-cmake -S . -B build-offline -DCMAKE_BUILD_TYPE=Release
-cmake --build build-offline --target generate_sdat verify_sdat -j
-./build-offline/generate_sdat --config offline/configs/frodo640.conf --solver exact-denominator --reproducible
+cmake -S . -B build-offline -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=OFF
+cmake --build build-offline -j
 ./build-offline/verify_sdat --all
+ctest --test-dir build-offline --output-on-failure
 ```
 
-For online benchmark smoke testing:
+## Online correctness
 
 ```sh
-cmake -S . -B build-online -DSDA_BUILD_BENCHMARKS=ON
-cmake --build build-online --target benchmark_sdat_online -j
-ONLINE_BENCH_SAMPLES=10000 ONLINE_BENCH_REPETITIONS=3 ./build-online/benchmark_sdat_online
+cmake -S . -B build-online -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=OFF
+cmake --build build-online -j
+ctest --test-dir build-online --output-on-failure
 ```
 
-Long Falcon BKZ and full formal benchmark runs are intentionally not part of the smoke path.
+## Benchmarks
+
+Benchmarks are opt-in and live under `benchmark/`:
+
+```sh
+cmake -S . -B build-benchmark -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=ON
+cmake --build build-benchmark --target benchmark_frodo_sample_n benchmark_sdat_online -j
+benchmark/scripts/run_frodo_benchmarks.sh
+```
+
+Benchmark scripts default to `build/benchmark-results/` and should not write tracked CSV files. Frodo production tables are frozen at q=14534/7442/102; research searches for future tables are outside the default production workflow.
+
+## Falcon base-sampler benchmark
+
+```sh
+cmake -S . -B build-benchmark -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=ON
+cmake --build build-benchmark --target benchmark_falcon_base_sampler -j
+./build-benchmark/benchmark_falcon_base_sampler
+```
+
+This benchmark covers only the portable half-Gaussian base sampler and does not include full Falcon signing.
+
+## Paper-primary benchmark interpretation
+
+For the current paper draft, report portable/reference Original vs portable/reference SDA-CDT first. AVX2 benchmark rows are reproducible diagnostics and future-work data, not the main speedup claim. Keep `mapping_only` and `end_to_end` summaries separate.

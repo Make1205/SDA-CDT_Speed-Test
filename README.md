@@ -1,97 +1,62 @@
 # SDA-CDT Speed Test
 
-This repository separates SDA-CDT work into an **online phase** and an **offline phase**.
+This repository is split by responsibility:
 
-* `online/` contains the fixed-width C sampler, final reviewed table payloads/manifests, online KAT/tests, and online benchmarks. It intentionally does not link GMP/MPFR or read `offline/generated/`.
-* `offline/` contains SDA modeling, exact Frodo `l_infinity` SVP/certificate code, Falcon heuristic epsilon-BKZ research code, table generation, verification, offline tests, configs, and reproducible scripts.
-* `offline/generated/` is the ignored workspace for regenerated CSV, logs, candidate tables, checkpoints, basis files, and benchmark outputs. Historical generated files from the pre-cleanup tree are kept conservatively under `offline/generated/legacy/` in the working tree but are not tracked.
+* `offline/`: table generation, exact-SVP/SDA solving, PMF/CDF/threshold export, certificates, verification tools, and offline correctness tests.
+* `online/`: production sampler/runtime code, reviewed Frodo/Falcon table mappings, scalar/AVX2 implementations, and online correctness tests.
+* `benchmark/`: performance-only benchmark sources, benchmark scripts, and benchmark result documentation.
+* `docs/`: phase notes, table-format notes, and reproducibility instructions.
 
-## Layout
+Frodo production tables are frozen in this workflow:
 
-```text
-.
-├── online/                 # runtime sampler, final tables, online tests/benchmarks
-│   ├── common/             # shared online table and bounded-uniform support
-│   ├── frodo/              # scalar/reference online implementation
-│   ├── falcon/             # AVX2 online implementation and Falcon base table support
-│   ├── tables/             # committed final table artifacts and manifests
-│   ├── tests/
-│   └── benchmarks/
-├── offline/                # research, generation, exact/heuristic solvers, verification
-│   ├── common/             # C library used by offline tools/tests
-│   ├── scripts/            # generators, verifiers, exporters, summarizers
-│   ├── configs/            # Frodo/Falcon generation configs
-│   ├── tests/
-│   ├── benchmarks/
-│   ├── results/verified/   # small committed verification summaries
-│   └── generated/          # ignored regenerated outputs
-├── docs/
-└── third_party/
-```
+| Parameter set | SDA q |
+| --- | ---: |
+| Frodo-640 | 14534 |
+| Frodo-976 | 7442 |
+| Frodo-1344 | 102 |
 
-See `docs/REPOSITORY_LAYOUT.md` for the detailed mapping.
+Future epsilon-driven Frodo table research should run outside the default production workflow and must not overwrite frozen production artifacts.
 
-## Build and test only the online sampler
+## Build and test
+
+Online-only correctness build:
 
 ```sh
-cmake -S . -B build-online -DSDA_BUILD_BENCHMARKS=ON
-cmake --build build-online --target test_sdat_online benchmark_sdat_online -j
-ctest --test-dir build-online -R test_sdat_online --output-on-failure
+cmake -S . -B build-online -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=OFF
+cmake --build build-online -j
+ctest --test-dir build-online --output-on-failure
 ```
 
-The online targets use only C17 and standard system libraries. They do not require GMP, MPFR, FLINT, fplll, or files under `offline/generated/`.
-
-## Run online benchmarks
-
-Frodo and Falcon online lookup/end-to-end rows are emitted by the same binary:
+Offline generation/verification build:
 
 ```sh
-ONLINE_BENCH_SAMPLES=10000 ONLINE_BENCH_REPETITIONS=3 ./build-online/benchmark_sdat_online
-```
-
-For the scripted benchmark harness:
-
-```sh
-online/benchmarks/run_online_benchmarks.sh --quick
-```
-
-The script writes ignored output under `offline/generated/online/formal/`.
-
-## Minimal offline generation and verification
-
-Offline tools require GMP and MPFR; FLINT is optional unless explicitly enabling Falcon FLINT/LLL experiments.
-
-```sh
-cmake -S . -B build-offline -DCMAKE_BUILD_TYPE=Release
-cmake --build build-offline --target generate_sdat verify_sdat -j
-./build-offline/generate_sdat --config offline/configs/frodo640.conf --solver exact-denominator --reproducible
+cmake -S . -B build-offline -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=OFF
+cmake --build build-offline -j
 ./build-offline/verify_sdat --all
+ctest --test-dir build-offline --output-on-failure
 ```
 
-Generation writes candidate and report files into `offline/generated/`. Verification reads the generated candidate header from `offline/generated/sda_generated_tables.h` when present, otherwise the conservative legacy placeholder in `offline/generated/legacy/` keeps offline tests buildable.
+Benchmark build, enabled explicitly:
 
-## Offline to online table boundary
-
-The intended flow is:
-
-```text
-offline solver/search
-  -> offline/generated candidate artifacts
-  -> offline verification
-  -> export reviewed table + manifest
-  -> online/tables/<scheme>/<parameter-set>/ or online/common/sdat_tables.c
+```sh
+cmake -S . -B build-benchmark -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=ON
+cmake --build build-benchmark --target benchmark_frodo_sample_n benchmark_sdat_online -j
 ```
 
-Committed online-required artifacts are:
+Benchmark scripts live under `benchmark/scripts/` and default to writing transient output under `build/benchmark-results/`.
 
-* `online/common/sdat_tables.c` and `online/common/sdat_tables.h` (runtime table definitions and format).
-* `online/tables/frodo/` (reviewed Frodo online table manifests, hashes, and exported headers).
-* `online/tables/falcon/` (reviewed Falcon source/provenance table artifacts).
+## Frodo sampler scope
 
-Regenerable candidate files, logs, basis files, checkpoints, and benchmark outputs belong in `offline/generated/` and are ignored by Git.
+The Frodo `sample_n` code is a one-dimensional sampler benchmark harness only. It does not implement FrodoKEM KeyGen, Encaps, or Decaps. Original Frodo keeps the official 16-bit word semantics; SDA supports packed-bit and word-oriented unbiased rejection profiles. Timing and metrics benchmark passes remain separated so performance measurements do not include per-sample instrumentation.
 
-## Exact Frodo path vs Falcon heuristic path
+## Production table boundary
 
-Frodo offline production/certification code contains an exact SDA-specialized `l_infinity` SVP path and exact-denominator smoke paths. Falcon research artifacts use an epsilon-BKZ/`l_2` heuristic candidate-generation flow and are explicitly marked heuristic; they must not be described as exact `l_infinity` SVP certificates.
+Production runtime tables are the definitions in `online/common/sdat_tables.c` and the reviewed manifest under `online/tables/frodo/`. Regenerated candidate files, research traces, solver logs, and benchmark CSV outputs are not production artifacts and should not be committed unless deliberately promoted through the documented verification path.
 
-Additional details are in `docs/OFFLINE_PHASE.md`, `docs/TABLE_FORMAT.md`, and `docs/REPRODUCIBILITY.md`.
+## Falcon base sampler
+
+The online Falcon addition is limited to the portable C half-Gaussian base sampler over support `{0,...,18}` with center 0 and sigma0=1.8205. It exposes Original and SDA base-sampler APIs for correctness tests and benchmarks only; it does not implement samplerZ, BerExp, FFT sampling, signing, verification, keygen, or any full Falcon-512/Falcon-1024 API. Benchmark code for the base sampler lives in `benchmark/falcon/`.
+
+## Reporting policy
+
+Paper-primary speed results should compare portable/reference Original against portable/reference SDA-CDT at the same benchmark scope. AVX2 implementations and cross-ISA comparisons are retained for correctness checks and future optimization work, but they are not the current paper-primary speedup claim.

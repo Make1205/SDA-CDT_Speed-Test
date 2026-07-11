@@ -1,11 +1,15 @@
-# Online phase
+# Online Phase
 
-The online phase executes table lookup and bounded uniform sampling from reviewed SDA-CDT/original-CDT table data. Build it with:
+The online phase owns production runtime sampling only: table mapping, bounded-uniform/rejection sampling, scalar and AVX2 sampler implementations, and correctness tests. Performance benchmark sources and scripts live under `benchmark/`.
+
+Frodo production SDA q values are frozen at 14534/7442/102 for Frodo-640/976/1344. Original Frodo CDT thresholds remain the official FrodoKEM-compatible CDFs.
+
+Build online correctness tests without benchmarks:
 
 ```sh
-cmake -S . -B build-online -DSDA_BUILD_BENCHMARKS=ON
-cmake --build build-online --target test_sdat_online benchmark_sdat_online -j
-ctest --test-dir build-online -R test_sdat_online --output-on-failure
+cmake -S . -B build-online -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=OFF
+cmake --build build-online -j
+ctest --test-dir build-online --output-on-failure
 ```
 
-The online phase uses `online/common`, `online/frodo`, `online/falcon`, and committed metadata in `online/tables`. It does not depend on `offline/generated`.
+The Frodo `sample_n` code remains a one-dimensional sampler harness only; it does not implement KeyGen, Encaps, or Decaps. Timing/metrics-separated performance runs are built explicitly from `benchmark/` with `SDA_BUILD_BENCHMARKS=ON`.
