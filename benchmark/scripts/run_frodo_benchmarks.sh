@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-BUILD=${BUILD:-$ROOT/build-online}
+BUILD=${BUILD:-$ROOT/build-benchmark}
 CPU_COUNT=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
 DEFAULT_CORE=0
 if [ "$CPU_COUNT" -gt 2 ]; then DEFAULT_CORE=2; fi
 CORE=${FRODO_BENCH_CORE:-$DEFAULT_CORE}
-OUT=${FRODO_BENCH_OUT:-$ROOT/offline/generated/online/frodo-stable-$(date -u +%Y%m%dT%H%M%SZ)}
+OUT=${FRODO_BENCH_OUT:-$ROOT/build/benchmark-results/frodo-stable-$(date -u +%Y%m%dT%H%M%SZ)}
 mkdir -p "$OUT"
 {
   echo timestamp_utc=$(date -u +%FT%TZ)

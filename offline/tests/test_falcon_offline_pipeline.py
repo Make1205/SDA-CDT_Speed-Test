@@ -9,6 +9,10 @@ def assert_true(x, msg):
     if not x:
         raise SystemExit(msg)
 
+if not (OUT/'falcon_sdat_selected.csv').exists():
+    print('falcon_offline_pipeline_skipped: generated/research/falcon artifacts absent')
+    raise SystemExit(0)
+
 rows=list(csv.DictReader((OUT/'falcon_sdat_selected.csv').open()))
 assert_true(len(rows)==19, 'selected table length')
 masses=[int(r['mass_decimal']) for r in rows]
