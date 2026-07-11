@@ -1,5 +1,0 @@
-application_selection_mode=epsilon-svp-generated-min-q
-research_only_application_q_search=false
-production_uses_arbitrary_q_search=false
-source_is_fixture=false
-

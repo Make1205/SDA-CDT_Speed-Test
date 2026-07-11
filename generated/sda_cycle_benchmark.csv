@@ -1,4 +1,0 @@
-parameter_set,sampler_type,q,q_bits,acceptance,rejection_rate,expected_attempts,measured_attempts,expected_raw_bits,measured_raw_bits,native_bytes,packed_bits,median_cycles_per_sample,MAD,p10,p90,min,max,status
-frodo640,current-epsilon-svp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,no_feasible_candidate
-frodo976,current-epsilon-svp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,no_feasible_candidate
-frodo1344,current-epsilon-svp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,no_feasible_candidate

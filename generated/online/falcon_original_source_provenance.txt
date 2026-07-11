@@ -1,7 +1,0 @@
-source_url=https://falcon-sign.info/impl/sign.c.html
-source_file=sign.c.html
-source_version=Falcon reference implementation web source; copyright 2017-2019 Falcon Project
-license=MIT-style permission notice in source lines 4-26
-symbols=Zf(gaussian0_sampler), dist[], AVX2 rhi15/rlo57
-semantics=72-bit random value; scalar path splits into three 24-bit limbs v0,v1,v2; output z counts official thresholds greater than random value; sign handled outside gaussian0_sampler in full Falcon sampler
-source_sha256=not_downloaded_as_file; referenced URL and frozen constants are embedded in online/common/sdat_tables.c
