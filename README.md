@@ -137,3 +137,10 @@ Stable Frodo benchmarking should be run through `online/benchmarks/run_frodo_sta
 Packed-bit remains a single-stream profile in the default benchmark. A multistream packed SIMD design would use independent lane bitstreams and would change bitstream layout while preserving the distribution; it needs PRG stream derivation/domain separation before production use. Current component data shows packed AVX2 is still limited by serial extraction/rejection and batch overhead, so no default multistream sampler is installed in this round.
 
 Table-size columns now distinguish `full_exported_threshold_bits`, `actual_c_array_threshold_bits`, `minimal_required_threshold_bits`, and `native_storage_bytes`; these threshold-bit counts exclude support metadata, type tags, and table counts.
+
+
+### Randomness accounting correction
+
+Randomness columns use strict logical-vs-physical definitions. For word-oriented SDA, if `A` is attempts per accepted sample and `b` is the candidate width, `logical_candidate_bits_per_sample = b * A` includes accepted and rejected candidate bits, `logical_sign_bits_per_sample = 1`, and `logical_used_bits_per_sample = b * A + 1`. Rejected words do not produce a logical sign; their bit-`b` positions are reported as `discarded_sign_position_bits_per_sample = A - 1`. The unused high bits above bit `b` are `unused_high_bits_per_sample = (16 - b - 1) * A`, while physical source is `physical_source_bits_per_sample = 16 * A` and `physical_source_bytes_per_sample = 2 * A`. Thus `logical_used_bits + discarded_sign_position_bits + unused_high_bits = physical_source_bits`; do not add discarded candidate bits again because they are already included in logical candidate bits.
+
+For packed-bit SDA, `logical_candidate_bits_per_sample = b * A`, `logical_sign_bits_per_sample = 1`, and `logical_used_bits_per_sample = b * A + 1`; there are no discarded sign-position bits, and physical source bits/bytes come from the reader's actual loaded/consumed stream rather than a 16-bit-word waste model. Original Frodo reports the same columns with fixed values: 15 candidate bits, 1 sign bit, 16 logical/physical bits, and 2 source bytes per sample.

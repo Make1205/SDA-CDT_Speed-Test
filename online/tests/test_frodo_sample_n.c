@@ -21,4 +21,10 @@ static int test_word_sign_exhaustive(void){
  for(int ti=0;ti<3;ti++){uint64_t s0=0,s1=0,acc=0; for(uint32_t w=0;w<65536;w++){uint32_t c=w&((1u<<bits[ti])-1u); if(c>=qs[ti])continue; uint8_t sign=(uint8_t)((w>>bits[ti])&1u); if(sign)s1++;else s0++;acc++; uint16_t out; uint16_t ww=(uint16_t)w; sdat_stats st; if(frodo_sda_word_sample_n(&out,1,&ww,1,tabs[ti],&st))return 90+ti; uint16_t ref=frodo_apply_sign(frodo_lookup_magnitude_scalar(c,tabs[ti]),sign); if(out!=ref||st.attempts!=1||st.random_bytes!=2)return 100+ti;} if(s0!=s1 || acc!=2ull*qs[ti]*(1ull<<(15-bits[ti])))return 110+ti; }
  return 0;
 }
-int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;puts("frodo_sample_n tests passed");return 0;}
+
+static int test_word_accounting_synthetic(void){
+ const sdat_table*tabs[3]={&sda_table_frodo640,&sda_table_frodo976,&sda_table_frodo1344}; unsigned bits[3]={14,13,7}; uint16_t qs[3]={14534,7442,102};
+ for(int ti=0;ti<3;ti++){uint16_t words[3];words[0]=qs[ti];words[1]=(uint16_t)((1u<<bits[ti])-1u);words[2]=(uint16_t)(1u<<bits[ti]);uint16_t out=0;sdat_stats st={0};if(frodo_sda_word_sample_n(&out,1,words,3,tabs[ti],&st))return 120+ti;uint64_t logical_candidate=(uint64_t)bits[ti]*st.attempts;uint64_t logical_sign=1;uint64_t logical_used=logical_candidate+logical_sign;uint64_t discarded_sign=st.attempts-1;uint64_t unused=(uint64_t)(16-bits[ti]-1)*st.attempts;uint64_t physical=st.random_bytes*8;if(st.attempts!=3||st.rejections!=2||st.random_bits!=logical_used||physical!=48)return 130+ti;if(logical_used+discarded_sign+unused!=physical)return 140+ti;}
+ return 0;
+}
+int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;if((r=test_word_accounting_synthetic()))return r;puts("frodo_sample_n tests passed");return 0;}
