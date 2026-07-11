@@ -78,3 +78,5 @@ In environments without MPFR/GMP offline dependencies, compact-q research report
 ### Frodo-640 compact-q reproducibility note
 
 Install GMP/MPFR development headers before running the epsilon-driven Frodo-640 compact-q path, for example `sudo apt-get install libgmp-dev libmpfr-dev` on Debian/Ubuntu. FLINT is optional for this exact-SVP diagnostic path and should not block GMP/MPFR generation. After `generate_sdat` emits `offline/generated/sda_all_candidates.csv`, run `python3 offline/scripts/frodo640_compact_epsilon_report.py` to create the compact frontier, consolidated report, and cleanup manifest. These generated research summaries are ignored by Git; only reviewed production artifacts should be committed if the incumbent q is actually replaced.
+
+The theorem-aligned Frodo-640 compact search uses `epsilon_min=2^(-15/13)` and `epsilon_max=2^(-15/14)` from the checked config dimensions (`k=15`, `n=13`). Run research generation from an isolated temporary working directory and pass the resulting trace to `offline/scripts/frodo640_compact_epsilon_report.py`; this keeps production generated headers and online tables unchanged when no eligible candidate is found.

@@ -155,3 +155,5 @@ In environments without MPFR/GMP offline dependencies, compact-q research report
 ### Frodo-640 compact-q epsilon audit helper
 
 `offline/scripts/frodo640_compact_epsilon_report.py` summarizes Frodo-640 candidates that were naturally produced by the epsilon-driven exact-`l_infinity` SDA path. It consumes `generate_sdat` trace rows, computes relative gap, acceptance, expected attempts, expected logical bits, and a Pareto frontier, and writes a compact cleanup manifest. It never searches q directly and is intended to keep `offline/generated/research/frodo640/` free of stale per-trial artifacts. Production q remains unchanged unless a certified epsilon-derived candidate is strictly better than the current `q=14534` under the documented selector.
+
+The Frodo-640 compact-q audit now uses the theorem-aligned interval `2^(-k/n) <= epsilon <= 2^(-k/(n+1))`, with `k` and `n` validated from the Frodo-640 config (`k=15`, `n=13`). Research generation should be isolated from production outputs; if the frontier has no eligible candidate, `q=14534` and all online tables remain unchanged.

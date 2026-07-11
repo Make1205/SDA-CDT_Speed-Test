@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import math
 from dataclasses import dataclass
 from decimal import Decimal, getcontext
 from pathlib import Path
@@ -20,6 +19,25 @@ getcontext().prec = 50
 INCUMBENT_Q = 14534
 ORIGINAL_Q = 32768
 
+
+
+def read_config(path: Path) -> dict[str, str]:
+    cfg: dict[str, str] = {}
+    with path.open() as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            cfg[k.strip()] = v.strip()
+    return cfg
+
+
+def theorem_interval(k: int, n: int) -> tuple[Decimal, Decimal]:
+    two = Decimal(2)
+    lo = ((-Decimal(k) / Decimal(n)) * two.ln()).exp()
+    hi = ((-Decimal(k) / Decimal(n + 1)) * two.ln()).exp()
+    return lo, hi
 
 def d(x: str) -> Decimal:
     return Decimal(x.strip() or "0")
@@ -244,7 +262,7 @@ def write_frontier(path: Path, cands: list[Candidate]) -> None:
             })
 
 
-def write_report(path: Path, all_rows: list[Candidate], uniq: list[Candidate], front: list[Candidate]) -> None:
+def write_report(path: Path, all_rows: list[Candidate], uniq: list[Candidate], front: list[Candidate], k: int, n: int, eps_lo: Decimal, eps_hi: Decimal) -> None:
     incumbent = Candidate("incumbent", INCUMBENT_Q, Decimal(0), Decimal(1), Decimal(0), Decimal(1), True, True, "", "incumbent", "incumbent", True, "")
     eligible = [c for c in uniq if c.hard_ok]
     recommended = None
@@ -266,6 +284,10 @@ def write_report(path: Path, all_rows: list[Candidate], uniq: list[Candidate], f
         f.write("production_q_replaced=false\n")
         f.write("reason=no eligible certified epsilon-derived candidate strictly better than incumbent was found in this trace\n")
         f.write("search_input=epsilon only; q values are parsed from generate_sdat exact-l_inf-SVP trace rows\n")
+        f.write(f"fixed_point_k={k}\n")
+        f.write(f"probability_dimension_n={n}\n")
+        f.write(f"theorem_epsilon_min={fmt(eps_lo)}\n")
+        f.write(f"theorem_epsilon_max={fmt(eps_hi)}\n")
         f.write("hidden_target_q_detected=false in solve_svp_candidate path (initial_q=0)\n")
         f.write(f"epsilon_rows={len(all_rows)}\n")
         f.write(f"distinct_q_count={len(uniq)}\n")
@@ -306,9 +328,16 @@ def write_cleanup(path: Path, root: Path, kept: list[Path], deleted: list[Path])
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--trace", default="offline/generated/sda_all_candidates.csv")
+    ap.add_argument("--config", default="offline/configs/frodo640.conf")
     ap.add_argument("--out-dir", default="offline/generated/research/frodo640")
     args = ap.parse_args()
     trace = Path(args.trace)
+    cfg = read_config(Path(args.config))
+    k = int(cfg.get("precision_k", "0"))
+    n = int(cfg.get("support_max", "-1")) - int(cfg.get("support_min", "0")) + 1
+    if k != 15 or n != 13:
+        raise SystemExit(f"Frodo-640 theorem interval requires k=15,n=13; got k={k},n={n}")
+    eps_lo, eps_hi = theorem_interval(k, n)
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     all_rows = load_trace(trace)
@@ -328,7 +357,7 @@ def main() -> int:
             p.unlink()
             deleted.append(p)
     write_frontier(frontier_path, front)
-    write_report(report_path, all_rows, uniq, front)
+    write_report(report_path, all_rows, uniq, front, k, n, eps_lo, eps_hi)
     write_cleanup(cleanup_path, out, [frontier_path, report_path, cleanup_path], deleted)
     print(f"wrote {frontier_path}")
     print(f"wrote {report_path}")

@@ -38,3 +38,7 @@ python3 offline/scripts/frodo640_compact_epsilon_report.py \
 ```
 
 Generated trial traces are research-only and should be consolidated into `offline/generated/research/frodo640/frodo640_pareto_frontier.csv`, `frodo640_search_report.txt`, and `frodo640_cleanup_manifest.txt`. Production Frodo-640 is replaced only if a certified epsilon-derived candidate passes all hard constraints and is strictly better than the incumbent; Frodo-976 and Frodo-1344 must not be changed by this workflow.
+
+### Theorem-aligned Frodo-640 epsilon interval
+
+For Frodo-640 compact-q research, the theorem-aligned interval is derived from Definition 10 and Theorem 8 as `2^(-k/n) <= epsilon <= 2^(-k/(n+1))`. The implementation validates `k=precision_k` and `n=support_max-support_min+1` from `offline/configs/frodo640.conf`; the current Frodo-640 config therefore uses `k=15`, `n=13`, `epsilon_min=2^(-15/13)`, and `epsilon_max=2^(-15/14)`. Candidates outside this interval are diagnostics only and must not enter the theorem-aligned production frontier. Research runs should use an isolated working directory so generated trace/header files do not overwrite production artifacts; promotion to production remains a separate explicit operation after all certificates pass.

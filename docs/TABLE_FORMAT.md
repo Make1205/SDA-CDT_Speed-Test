@@ -63,3 +63,5 @@ In environments without MPFR/GMP offline dependencies, compact-q research report
 ### Frodo-640 compact-q research artifacts
 
 Frodo-640 compact-q research files under `offline/generated/research/frodo640/` are not table-format authorities. The consolidated frontier/report list epsilon-derived q values, power-of-two gap metrics, expected logical randomness, SD/RD, and rejection reasons. They deliberately exclude per-epsilon JSON dumps or temporary solver traces after cleanup. Online table manifests remain authoritative for production q/threshold/hash data; Frodo-976 and Frodo-1344 entries are not modified by the Frodo-640 compact-q audit.
+
+Theorem-aligned Frodo-640 compact-q frontier rows are research summaries, not production table rows. They are valid for promotion only when their epsilon lies in `[2^(-k/n), 2^(-k/(n+1))]` for the config-derived `k` and `n`, the exact-SVP provenance is certified, and all PMF/CDF/table checks pass. Until promotion, production table-size and hash metadata remain those in the online manifest.

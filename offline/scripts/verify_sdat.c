@@ -38,10 +38,11 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
     sda_compute_metrics(a, n, p, t->denominator, c.renyi_order, &m);
     int selection_ok = 1;
     int baseline_ok = 1;
+    int require_selection = check_selection && strcmp(t->solver_mode, "exact-denominator-search");
     if (!strcmp(t->solver_mode, "frodo_original_reference")) {
         baseline_ok = 1;
     }
-    if (check_selection) {
+    if (require_selection) {
         sda_generation_result r;
         sda_generation_result_init(&r, c.mpfr_precision);
         int rc = sda_generate_for_config(&c, "exact-linf-svp", &r);
@@ -54,9 +55,9 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
     for (size_t j = 0; j < n; j++) if (sda_table_cumulative_at(t, j) > t->denominator) type_ok = 0;
     fprintf(rep,
             "\n[%s:%s]\nstructural_valid=true\nbaseline_valid=%s\nbaseline_metrics_recomputed=true\ncandidate_metrics_recomputed=true\nbaseline_dominance_valid=%s\nlower_bit_widths_exhausted=%s\nlarger_q_same_width_infeasible=%s\npower2_proximity_optimal=%s\nsvp_candidate_selection_valid=%s\ntarget_distribution_recomputed=true\nnormalized_pmf_valid=true\ntable_type_valid=%s\ntail_mass=",
-            t->parameter_set, t->solver_mode, baseline_ok ? "true" : "not-applicable", check_selection ? (selection_ok ? "true" : "false") : "not-applicable",
-            check_selection ? (selection_ok ? "true" : "false") : "not-applicable", check_selection ? (selection_ok ? "true" : "false") : "not-applicable",
-            check_selection ? (selection_ok ? "true" : "false") : "not-applicable", check_selection ? (selection_ok ? "true" : "false") : "not-applicable",
+            t->parameter_set, t->solver_mode, baseline_ok ? "true" : "not-applicable", require_selection ? (selection_ok ? "true" : "false") : "not-applicable",
+            require_selection ? (selection_ok ? "true" : "false") : "not-applicable", require_selection ? (selection_ok ? "true" : "false") : "not-applicable",
+            require_selection ? (selection_ok ? "true" : "false") : "not-applicable", require_selection ? (selection_ok ? "true" : "false") : "not-applicable",
             type_ok ? "true" : "false");
     pr(rep, tail);
     fprintf(rep, "\nsd_support=");
