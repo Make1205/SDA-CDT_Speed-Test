@@ -78,6 +78,10 @@ if(PYTHON3_EXECUTABLE)
 endif()
 endif() # SDA_HAVE_OFFLINE_DEPS
 
+add_executable(test_frodo640_compact_selector offline/tests/test_frodo640_compact_selector.c)
+target_compile_options(test_frodo640_compact_selector PRIVATE ${SDA_CFLAGS})
+add_test(NAME test_frodo640_compact_selector COMMAND test_frodo640_compact_selector)
+
 # Online Original CDT/SDA_CDT sampler targets: fixed-width C only, deliberately not linked to offline sda/GMP/MPFR targets.
 add_library(sdat_online_common online/common/sdat_tables.c)
 target_include_directories(sdat_online_common PUBLIC online/common)
