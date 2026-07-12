@@ -135,3 +135,41 @@ FRODO_BENCH_SAMPLE_COUNT=1048576 FRODO_BENCH_REPETITIONS=31 FRODO_BENCH_WARMUP=5
 ```
 
 For a larger optional formal run, set `FRODO_BENCH_SAMPLE_COUNT=4194304`.
+
+## Falcon Base Sampler Quick Start
+
+From the repository root:
+
+```bash
+./benchmark/run_falcon.sh
+```
+
+This configures, builds, tests, benchmarks, and summarizes the Falcon base half-Gaussian sampler.
+
+The benchmark compares the Original Falcon base sampler against the SDA Falcon base sampler using Falcon-native 72-bit source semantics. It measures only the shared Falcon base Gaussian0 half-Gaussian sampler (`sigma0 = 1.8205`, support `0..18`); it is not samplerZ, not BerExp, not FFT sampling, and not the signing flow.
+
+Falcon formal/quick presets mirror the Frodo workflow where that is a benchmark-framework concern, but the sampler architecture remains Falcon-native: 9 little-endian source bytes construct one 72-bit `sdat_u72` attempt, Original uses the Falcon reverse-tail CDT lookup, and SDA uses Falcon 72-bit rejection against its denominator followed by cumulative lookup. No Falcon benchmark uses Frodo word-oriented or packed-bit frontends.
+
+The Falcon benchmark boundary is sampler-core/source-extraction over pre-generated PRNG source bytes. It does not time real PRNG generation/refill, so summaries report `rng_generation_status = not_in_benchmark` and `RNG generation = N/A (pre-generated PRNG source/state)`.
+
+Falcon raw outputs are written under `build/benchmark-results/falcon-*` by default:
+
+- `falcon_base_sampler_raw.csv`
+- `falcon_breakdown_raw.csv`
+- `falcon_summary.csv`
+- `falcon_summary.md`
+- `falcon_summary.json`
+
+Full Falcon raw schema: `scheme`, `parameter_set`, `sampler_kind`, `backend`, `frontend`, `component`, `mode`, `implementation`, `sample_count`, `process_id`, `repetition`, `cycles_total`, `cycles_per_output`, `attempts_per_output`, `rejections_per_output`, `source_bytes_per_attempt`, `physical_bytes_per_output`, `random_precision_bits`, `checksum`, `status`.
+
+Breakdown Falcon raw schema adds `cycles_per_attempt`, `accepted_outputs`, and `source_bytes`. Actual components are `source-frontend`, `cdt-mapping`, and `full-sampler-core`; `rng-generation` and `prg-plus-full-sampler` are not generated without a real timed Falcon PRNG backend. Component timings are standalone microbenchmarks and are not additive.
+
+Falcon commands:
+
+```bash
+./benchmark/run_falcon.sh          # formal equal-size
+./benchmark/run_falcon.sh quick    # tooling validation only
+./benchmark/run_falcon.sh large    # larger formal equal-size
+```
+
+Advanced users may call `benchmark/scripts/run_falcon_benchmarks.sh` directly after building `benchmark_falcon_base_sampler`, `benchmark_falcon_breakdown`, and `test_falcon_base_sampler`.

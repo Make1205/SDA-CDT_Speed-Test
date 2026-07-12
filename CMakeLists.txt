@@ -123,6 +123,7 @@ add_test(NAME frodo_sample_n COMMAND test_frodo_sample_n)
 find_program(PYTHON3_EXECUTABLE NAMES python3 /usr/bin/python3)
 if(PYTHON3_EXECUTABLE)
   add_test(NAME frodo_summary_fixture COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/benchmark/tests/test_summarize_frodo_benchmark.py)
+  add_test(NAME falcon_summary_fixture COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/benchmark/tests/test_summarize_falcon_benchmark.py)
 endif()
 
 add_executable(test_falcon_base_sampler online/tests/test_falcon_base_sampler.c)
@@ -151,4 +152,9 @@ add_executable(benchmark_falcon_base_sampler benchmark/falcon/benchmark_falcon_b
 target_include_directories(benchmark_falcon_base_sampler PRIVATE online/frodo online/falcon online/common)
 target_link_libraries(benchmark_falcon_base_sampler PRIVATE sdat_online_ref m)
 target_compile_options(benchmark_falcon_base_sampler PRIVATE ${SDA_CFLAGS} -O3)
+
+add_executable(benchmark_falcon_breakdown benchmark/falcon/benchmark_falcon_breakdown.c)
+target_include_directories(benchmark_falcon_breakdown PRIVATE online/frodo online/falcon online/common)
+target_link_libraries(benchmark_falcon_breakdown PRIVATE sdat_online_ref m)
+target_compile_options(benchmark_falcon_breakdown PRIVATE ${SDA_CFLAGS} -O3)
 endif()

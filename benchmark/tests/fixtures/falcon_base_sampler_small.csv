@@ -1,0 +1,11 @@
+scheme,parameter_set,sampler_kind,backend,frontend,component,mode,implementation,sample_count,process_id,repetition,cycles_total,cycles_per_output,attempts_per_output,rejections_per_output,source_bytes_per_attempt,physical_bytes_per_output,random_precision_bits,checksum,status
+Falcon,base-gaussian0,original-cdt,reference,falcon-prng72,full-sampler-core,equal-size,original-reference,8,101,0,80,10,1,0,9,9,72,1,ok
+Falcon,base-gaussian0,original-cdt,reference,falcon-prng72,full-sampler-core,equal-size,original-reference,8,101,1,96,12,1,0,9,9,72,2,ok
+Falcon,base-gaussian0,original-cdt,reference,falcon-prng72,full-sampler-core,equal-size,original-reference,8,101,2,800,100,1,0,9,9,72,3,ok
+Falcon,base-gaussian0,original-cdt,reference,falcon-prng72,full-sampler-core,equal-size,original-reference,8,101,3,0,999,1,0,9,9,72,4,error
+Falcon,base-gaussian0,original-cdt,reference,falcon-prng72,full-sampler-core,equal-size,original-reference,8,202,0,160,20,1,0,9,9,72,5,ok
+Falcon,base-gaussian0,original-cdt,reference,falcon-prng72,full-sampler-core,equal-size,original-reference,8,202,1,176,22,1,0,9,9,72,6,ok
+Falcon,base-gaussian0,sda-cdt,reference,falcon-sda72,full-sampler-core,equal-size,sda-reference,8,101,0,72,9,1.1,0.1,9,9.9,72,7,ok
+Falcon,base-gaussian0,sda-cdt,reference,falcon-sda72,full-sampler-core,equal-size,sda-reference,8,101,1,88,11,1.1,0.1,9,9.9,72,8,ok
+Falcon,base-gaussian0,sda-cdt,reference,falcon-sda72,full-sampler-core,equal-size,sda-reference,8,202,0,104,13,1.2,0.2,9,10.8,72,9,ok
+Falcon,base-gaussian0,sda-cdt,reference,falcon-sda72,full-sampler-core,equal-size,sda-reference,8,202,1,120,15,1.2,0.2,9,10.8,72,10,ok
