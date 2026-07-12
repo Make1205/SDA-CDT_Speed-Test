@@ -1,6 +1,6 @@
 # Online Original CDT and SDA_CDT
 
-`online/` contains production runtime samplers, runtime table mappings, scalar/AVX2 implementations, and online correctness tests. It does not contain performance benchmarks; benchmark sources and scripts live under the root `benchmark/` directory.
+`online/` contains production runtime samplers, runtime table mappings, reference/AVX2 backend implementations, and online correctness tests. It does not contain performance benchmarks; benchmark sources and scripts live under the root `benchmark/` directory.
 
 Frozen Frodo SDA tables:
 
@@ -27,3 +27,9 @@ Build benchmarks separately with `-DSDA_BUILD_BENCHMARKS=ON` and use `benchmark/
 ## Reference vs AVX2 reporting
 
 Portable/reference samplers are the paper-primary comparison path. AVX2 remains available for correctness and future optimization work but should not be mixed with reference rows in the main speedup table.
+
+## Frodo sampler framework
+
+The Frodo runtime exposes a unified sampler dispatch layer with orthogonal dimensions: sampler kind (`original-cdt` or `sda-cdt`), backend (`reference` or `avx2`), frontend (`original-word`, `packed-bit`, or `word-oriented`), and parameter set (`frodo640`, `frodo976`, `frodo1344`).  Parameter descriptors reference the existing production tables; they do not copy or replace q values, CDFs, PMFs, thresholds, manifests, or hashes.
+
+`reference` means portable C compiled for the Frodo sampler with compiler vectorization disabled for sampler loops.  It may still use ordinary scalar optimization, but auto-vectorized portable C audit builds are not paper-primary reference results.  Hand-written AVX2 remains in the AVX2 backend and is not used to justify paper-primary reference speedups.
