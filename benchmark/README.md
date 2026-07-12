@@ -28,3 +28,18 @@ or an environment-provided output directory. Do not commit transient CSV output.
 ## Reporting policy
 
 Use `paper-primary` for portable/reference Original-vs-SDA rows at the same scope (`mapping_only` or `end_to_end`). Treat AVX2 rows as `future-work`: valid for internal diagnostics, but not as the current paper-primary comparison. Do not mix word-oriented speed with packed-bit physical-source accounting without labelling the trade-off.
+
+## Frodo sample_n benchmark labels
+
+`benchmark_frodo_sample_n` reports explicit dimensions: `sampler_kind`, `backend`, `frontend`, `mode`, and `implementation`.  The canonical implementation labels are:
+
+| Deprecated label | Canonical label |
+| --- | --- |
+| `official-original-scalar` | `original-reference` |
+| `official-original-avx2` | `original-avx2` |
+| `sda-packed-scalar` | `sda-packed-reference` |
+| `sda-packed-avx2` | `sda-packed-avx2` |
+| `sda-word-scalar` | `sda-word-reference` |
+| `sda-word-avx2` | `sda-word-avx2` |
+
+The benchmark defaults to equal-size throughput (`FRODO_BENCH_SAMPLE_COUNT=16384`).  Set `FRODO_BENCH_NATIVE_BATCH=1` to use Frodo-native batch sizes (5120, 7808, 10752).  `FRODO_BENCH_REPETITIONS`, `FRODO_BENCH_WARMUP`, and `FRODO_BENCH_ORDER_SEED` control repetitions, warmup, and deterministic parameter/order rotation.  Paper-primary rows are reference-vs-reference only; AVX2 rows are future-work diagnostics.
