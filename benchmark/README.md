@@ -42,7 +42,7 @@ Use `paper-primary` for portable/reference Original-vs-SDA rows at the same scop
 | `sda-word-scalar` | `sda-word-reference` |
 | `sda-word-avx2` | `sda-word-avx2` |
 
-The benchmark defaults to equal-size throughput (`FRODO_BENCH_SAMPLE_COUNT=16384`).  Set `FRODO_BENCH_NATIVE_BATCH=1` to use Frodo-native batch sizes (5120, 7808, 10752).  `FRODO_BENCH_REPETITIONS`, `FRODO_BENCH_WARMUP`, and `FRODO_BENCH_ORDER_SEED` control repetitions, warmup, and deterministic parameter/order rotation.  Paper-primary rows are reference-vs-reference only; AVX2 rows are future-work diagnostics.
+The benchmark defaults to equal-size throughput (`FRODO_BENCH_SAMPLE_COUNT=1048576`).  Set `FRODO_BENCH_NATIVE_BATCH=1` to use Frodo-native batch sizes (5120, 7808, 10752).  `FRODO_BENCH_REPETITIONS`, `FRODO_BENCH_WARMUP`, and `FRODO_BENCH_ORDER_SEED` control repetitions, warmup, and deterministic parameter/order rotation.  Paper-primary rows are reference-vs-reference only; AVX2 rows are future-work diagnostics.
 
 ## Frodo breakdown and compact summary
 
@@ -72,3 +72,45 @@ Summary groups are keyed by `parameter_set`, `sampler_kind`, `backend`, `fronten
 - `low_noise_median`: median after removing IQR outliers.
 
 Outliers are reported via `outlier_count`; raw median and low-noise median are both retained.
+
+`benchmark_frodo_sample_n` full raw schema:
+
+| Field | Meaning |
+| --- | --- |
+| `scheme`, `parameter_set` | Benchmark family and Frodo parameter instance. |
+| `sampler_kind`, `backend`, `frontend`, `implementation` | Sampler family, backend, input frontend, and canonical implementation label. |
+| `component` | Fixed component enum; full rows use `full-sampler-core`. |
+| `mode` | `equal-size` or `native-batch`; never mixed by summary grouping. |
+| `sample_count`, `process_id`, `repetition` | Work size, OS process id, and repetition index. |
+| `cycles_total`, `cycles_per_output` | Timed cycles for the row. |
+| `attempts_per_output`, `rejections_per_output` | Source attempts and rejections per output. |
+| `logical_bits_per_output`, `physical_bits_per_output` | Logical consumed bits and physical source bits per output. |
+| `checksum`, `status` | Output checksum and row status; non-`ok` rows are counted but excluded from valid statistics. |
+
+`benchmark_frodo_breakdown` raw schema adds `cycles_per_attempt`, `accepted_outputs`, and `source_words`. Its actual generated components are `source-frontend`, `cdt-mapping`, and `full-sampler-core`; `rng-generation` and `prg-plus-full-sampler` are not generated because no real PRG is in this benchmark. Original source frontend measures one pre-generated `uint16_t` word per output with no SDA rejection. SDA source frontend measures word reads, candidate masking, sign extraction, `candidate < q`, rejection/source consumption, accepted outputs, source words, attempts/output, and rejections/output.
+
+Component timings are standalone microbenchmarks and are not additive. The production full sampler fuses source frontend, rejection, lookup, sign, and output commit in one loop.
+
+Summary groups are keyed by `parameter_set`, `sampler_kind`, `backend`, `frontend`, `component`, `mode`, `implementation`, and `sample_count`. The summary retains pooled statistics and process-level statistics. Formal comparison tables use `median_of_process_medians` as the primary value; pooled medians and low-noise medians are also reported.
+
+Additional statistical definitions:
+
+- Percentiles (`p10`, `p25`, `p75`, `p90`) use linear interpolation between sorted samples at rank `(n - 1) * p / 100`; one-sample groups return that sample.
+- `sample_stdev` is the sample standard deviation; one-sample valid groups report `0`.
+- `cv` is `sample_stdev / mean` when the mean is nonzero.
+- `valid_n` counts only `status=ok` rows with a numeric `cycles_per_output`; `error_count` counts excluded rows.
+- `low_noise_median` removes only IQR outliers; if removal leaves no rows, it falls back to the pooled median and marks `low_noise_fallback=true`.
+
+Formal equal-size run:
+
+```bash
+FRODO_BENCH_SAMPLE_COUNT=1048576 FRODO_BENCH_REPETITIONS=31 FRODO_BENCH_WARMUP=5 FRODO_BENCH_PROCESSES=3 FRODO_BENCH_CPU=0 FRODO_BENCH_MODE=equal-size FRODO_BENCH_RESULTS_DIR=build/benchmark-results/formal-equal benchmark/scripts/run_frodo_benchmarks.sh
+```
+
+Formal both-modes run:
+
+```bash
+FRODO_BENCH_SAMPLE_COUNT=1048576 FRODO_BENCH_REPETITIONS=31 FRODO_BENCH_WARMUP=5 FRODO_BENCH_PROCESSES=3 FRODO_BENCH_CPU=0 FRODO_BENCH_MODE=both FRODO_BENCH_RESULTS_DIR=build/benchmark-results/formal-both benchmark/scripts/run_frodo_benchmarks.sh
+```
+
+For a larger optional formal run, set `FRODO_BENCH_SAMPLE_COUNT=4194304`.
