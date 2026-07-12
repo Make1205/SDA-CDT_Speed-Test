@@ -1,5 +1,27 @@
 # Benchmarks
 
+## Quick Start
+
+From the repository root:
+
+```bash
+./benchmark/run_frodo.sh
+```
+
+This configures, builds, tests, benchmarks, and generates compact summaries.
+
+Other modes:
+
+```bash
+./benchmark/run_frodo.sh quick
+./benchmark/run_frodo.sh both
+./benchmark/run_frodo.sh large
+```
+
+`quick` mode is for tooling validation only; do not use quick results for performance claims. Advanced users can still call `benchmark/scripts/run_frodo_benchmarks.sh` directly after building benchmark targets.
+
+## Advanced Usage
+
 This directory contains performance-only code and scripts. Production table
 generation/certification remains under `offline/`, and runtime samplers remain
 under `online/`.
@@ -10,8 +32,7 @@ Frodo production tables are frozen for this workflow:
 - Frodo-976 SDA q = 7442
 - Frodo-1344 SDA q = 102
 
-Build benchmark targets explicitly with `-DSDA_BUILD_BENCHMARKS=ON`, for
-example:
+For manual workflows, build benchmark targets explicitly with `-DSDA_BUILD_BENCHMARKS=ON`, for example:
 
 ```sh
 cmake -S . -B build-benchmark -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=ON
