@@ -2,28 +2,20 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 BUILD=${BUILD:-$ROOT/build-benchmark}
-CPU_COUNT=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
-DEFAULT_CORE=0
-if [ "$CPU_COUNT" -gt 2 ]; then DEFAULT_CORE=2; fi
-CORE=${FRODO_BENCH_CORE:-$DEFAULT_CORE}
-OUT=${FRODO_BENCH_OUT:-$ROOT/build/benchmark-results/frodo-stable-$(date -u +%Y%m%dT%H%M%SZ)}
-mkdir -p "$OUT"
-{
-  echo timestamp_utc=$(date -u +%FT%TZ)
-  echo kernel=$(uname -srmo)
-  echo cpu_model=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -1)
-  if compgen -G '/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor' >/dev/null; then
-    echo governors=$(cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null | sort -u | tr '\n' ',' | sed 's/,$//')
-  else echo governors=unavailable; fi
-  if [ -r /sys/devices/system/cpu/intel_pstate/no_turbo ]; then echo intel_no_turbo=$(cat /sys/devices/system/cpu/intel_pstate/no_turbo); else echo turbo=unknown; fi
-  if command -v taskset >/dev/null; then echo taskset=available core=$CORE cpu_count=$CPU_COUNT; else echo taskset=unavailable; fi
-  git -C "$ROOT" rev-parse HEAD | sed 's/^/commit=/'
-} | tee "$OUT/environment.txt"
-cmake -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=ON
-cmake --build "$BUILD" --target benchmark_frodo_sample_n test_frodo_sample_n -j"$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)"
-if command -v taskset >/dev/null; then
-  taskset -c "$CORE" "$BUILD/benchmark_frodo_sample_n" > "$OUT/frodo_sample_n.csv"
-else
-  "$BUILD/benchmark_frodo_sample_n" > "$OUT/frodo_sample_n.csv"
-fi
-echo output_dir=$OUT
+OUT=${FRODO_BENCH_RESULTS_DIR:-$ROOT/build/benchmark-results}
+N=${FRODO_BENCH_SAMPLE_COUNT:-1048576}; R=${FRODO_BENCH_REPETITIONS:-31}; W=${FRODO_BENCH_WARMUP:-5}; P=${FRODO_BENCH_PROCESSES:-3}; CPU=${FRODO_BENCH_CPU:-0}
+SAMPLE=$BUILD/benchmark_frodo_sample_n; BREAK=$BUILD/benchmark_frodo_breakdown
+[ -x "$SAMPLE" ] || { echo "missing $SAMPLE" >&2; exit 2; }
+[ -x "$BREAK" ] || { echo "missing $BREAK" >&2; exit 2; }
+mkdir -p "$OUT"; : > "$OUT/frodo_sample_n_raw.csv"; : > "$OUT/frodo_breakdown_raw.csv"
+run_one(){ local exe=$1 out=$2 tmp=$3; if command -v taskset >/dev/null; then taskset -c "$CPU" "$exe" > "$tmp"; else "$exe" > "$tmp"; fi; if [ ! -s "$out" ]; then cat "$tmp" > "$out"; else tail -n +2 "$tmp" >> "$out"; fi; }
+for i in $(seq 1 "$P"); do
+ export FRODO_BENCH_SAMPLE_COUNT=$N FRODO_BENCH_REPETITIONS=$R FRODO_BENCH_WARMUP=$W FRODO_BENCH_ORDER_SEED=$i
+ run_one "$SAMPLE" "$OUT/frodo_sample_n_raw.csv" "$OUT/sample.$i.csv"
+ run_one "$BREAK" "$OUT/frodo_breakdown_raw.csv" "$OUT/breakdown.$i.csv"
+done
+python3 "$ROOT/benchmark/scripts/summarize_frodo_benchmark.py" --sample-raw "$OUT/frodo_sample_n_raw.csv" --breakdown-raw "$OUT/frodo_breakdown_raw.csv" --out-dir "$OUT"
+echo "raw: $OUT/frodo_sample_n_raw.csv $OUT/frodo_breakdown_raw.csv"
+echo "summary: $OUT/frodo_summary.csv $OUT/frodo_summary.md $OUT/frodo_summary.json"
+sed -n '/## Reference full-sampler comparison/,/## Breakdown/p' "$OUT/frodo_summary.md"
+! grep -q ',error$' "$OUT/frodo_sample_n_raw.csv" "$OUT/frodo_breakdown_raw.csv"

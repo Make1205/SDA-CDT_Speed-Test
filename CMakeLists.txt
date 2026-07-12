@@ -138,6 +138,11 @@ target_include_directories(benchmark_frodo_sample_n PRIVATE online/frodo online/
 target_link_libraries(benchmark_frodo_sample_n PRIVATE sdat_frodo_sampler)
 target_compile_options(benchmark_frodo_sample_n PRIVATE ${SDA_CFLAGS} -O3)
 
+add_executable(benchmark_frodo_breakdown benchmark/frodo/benchmark_frodo_breakdown.c)
+target_include_directories(benchmark_frodo_breakdown PRIVATE online/frodo online/falcon online/common)
+target_link_libraries(benchmark_frodo_breakdown PRIVATE sdat_frodo_sampler)
+target_compile_options(benchmark_frodo_breakdown PRIVATE ${SDA_CFLAGS} -O3)
+
 add_executable(benchmark_falcon_base_sampler benchmark/falcon/benchmark_falcon_base_sampler.c)
 target_include_directories(benchmark_falcon_base_sampler PRIVATE online/frodo online/falcon online/common)
 target_link_libraries(benchmark_falcon_base_sampler PRIVATE sdat_online_ref m)
