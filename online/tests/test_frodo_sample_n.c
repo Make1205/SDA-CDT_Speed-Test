@@ -29,9 +29,16 @@ static int test_word_accounting_synthetic(void){
  return 0;
 }
 
+static int test_word_no_stats_equivalence(void){
+ const size_t lens[]={0,1,2,7,16,31,64,257,1024}; uint16_t words[8192],a[1024],b[1024];
+ for(size_t i=0;i<8192;i++)words[i]=(uint16_t)(i*40503u+97u+(i>>3));
+ for(int ti=0;ti<3;ti++)for(size_t li=0;li<sizeof(lens)/sizeof(lens[0]);li++){size_t n=lens[li];sdat_stats st={0};memset(a,0,sizeof a);memset(b,0,sizeof b);if(frodo_sda_word_sample_n(a,n,words,8192,tabs_s[ti],0))return 240+ti;if(frodo_sda_word_sample_n(b,n,words,8192,tabs_s[ti],&st))return 250+ti;if(memcmp(a,b,n*sizeof a[0]))return 260+ti;}
+ return 0;
+}
+
 static int test_dispatch_framework(void){
  const frodo_sampler_params*p; uint8_t buf[512]; uint16_t words[512],a[64],b[64]; for(size_t i=0;i<sizeof buf;i++)buf[i]=(uint8_t)(i*17+5); for(size_t i=0;i<512;i++)words[i]=(uint16_t)(i*251u+7u);
  for(int ti=0;ti<3;ti++){p=frodo_get_sampler_params((frodo_param_id)ti); if(!p||!p->original_table||!p->sda_table)return 150+ti; frodo_sampler_stats fs={0}; memcpy(a,words,sizeof a); if(frodo_sample_n_dispatch(FRODO_SAMPLER_ORIGINAL_CDT,FRODO_BACKEND_REFERENCE,FRODO_FRONTEND_ORIGINAL_WORD,(frodo_param_id)ti,a,64,buf,sizeof buf,words,512,&fs))return 160+ti; memcpy(b,words,sizeof b); if(frodo_original_sample_n(b,64,p->original_table))return 170+ti; if(memcmp(a,b,sizeof a))return 180+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_REFERENCE,FRODO_FRONTEND_PACKED_BIT,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 190+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_REFERENCE,FRODO_FRONTEND_WORD_ORIENTED,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 200+ti; if(sdat_avx2_cpu_supported()){ if(frodo_sample_n_dispatch(FRODO_SAMPLER_ORIGINAL_CDT,FRODO_BACKEND_AVX2,FRODO_FRONTEND_ORIGINAL_WORD,(frodo_param_id)ti,a,64,buf,sizeof buf,words,512,&fs))return 210+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_AVX2,FRODO_FRONTEND_PACKED_BIT,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 220+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_AVX2,FRODO_FRONTEND_WORD_ORIENTED,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 230+ti; }}
  return 0;
 }
-int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;if((r=test_word_accounting_synthetic()))return r;if((r=test_dispatch_framework()))return r;puts("frodo_sample_n tests passed");return 0;}
+int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;if((r=test_word_accounting_synthetic()))return r;if((r=test_word_no_stats_equivalence()))return r;if((r=test_dispatch_framework()))return r;puts("frodo_sample_n tests passed");return 0;}

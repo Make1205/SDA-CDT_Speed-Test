@@ -82,7 +82,7 @@ endif() # SDA_HAVE_OFFLINE_DEPS
 add_library(sdat_online_common online/common/sdat_tables.c)
 target_include_directories(sdat_online_common PUBLIC online/common)
 target_compile_options(sdat_online_common PRIVATE ${SDA_CFLAGS})
-add_library(sdat_online_ref online/frodo/sdat_ref.c online/common/sdat_bitreader.c online/frodo/frodo_sample_n.c online/frodo/frodo_sample_n_fast.c online/falcon/falcon_base_sampler.c)
+add_library(sdat_online_ref online/frodo/sdat_ref.c online/common/sdat_bitreader.c online/frodo/frodo_sample_n.c online/frodo/frodo_sample_n_fast.c online/frodo/frodo_sample_n_word640.c online/frodo/frodo_sample_n_word976.c online/frodo/frodo_sample_n_word1344.c online/falcon/falcon_base_sampler.c)
 target_include_directories(sdat_online_ref PUBLIC online/frodo online/falcon online/common)
 target_link_libraries(sdat_online_ref PUBLIC sdat_online_common)
 target_compile_options(sdat_online_ref PRIVATE ${SDA_CFLAGS} -O3 -fno-lto)
