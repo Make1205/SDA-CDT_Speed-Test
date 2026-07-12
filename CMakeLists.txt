@@ -157,4 +157,9 @@ add_executable(benchmark_falcon_breakdown benchmark/falcon/benchmark_falcon_brea
 target_include_directories(benchmark_falcon_breakdown PRIVATE online/frodo online/falcon online/common)
 target_link_libraries(benchmark_falcon_breakdown PRIVATE sdat_online_ref m)
 target_compile_options(benchmark_falcon_breakdown PRIVATE ${SDA_CFLAGS} -O3)
+
+add_executable(benchmark_falcon_fairness benchmark/falcon/benchmark_falcon_fairness.c)
+target_include_directories(benchmark_falcon_fairness PRIVATE online/frodo online/falcon online/common)
+target_link_libraries(benchmark_falcon_fairness PRIVATE sdat_online_ref m)
+target_compile_options(benchmark_falcon_fairness PRIVATE ${SDA_CFLAGS} -O3)
 endif()

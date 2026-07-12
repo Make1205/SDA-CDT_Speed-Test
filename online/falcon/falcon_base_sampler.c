@@ -51,7 +51,21 @@ int falcon_original_gaussian0_sample(sdat_randombytes_fn randombytes, void *ctx,
 
 size_t falcon_original_gaussian0_sample_n(sdat_randombytes_fn randombytes, void *ctx, uint32_t *out, size_t n, sdat_stats *stats) {
     if (!out && n) return 0;
-    if (stats) *stats = (sdat_stats){0};
+    if (!randombytes && n) return 0;
+    if (!stats) {
+        const sdat_u72 *thr = (const sdat_u72 *)original_cdt_table_falcon_base.thresholds;
+        const size_t tn = original_cdt_table_falcon_base.threshold_count;
+        size_t i = 0;
+        for (; i < n; i++) {
+            uint8_t b[FALCON_BASE_RANDOM_BYTES];
+            if (randombytes(ctx, b, sizeof b)) return i;
+            uint32_t y = online_lookup_u72_reverse_tail(sdat_u72_from_le9(b), thr, tn);
+            if (y > FALCON_BASE_SUPPORT_MAX) return i;
+            out[i] = y;
+        }
+        return i;
+    }
+    *stats = (sdat_stats){0};
     size_t i = 0;
     for (; i < n; i++) {
         if (falcon_original_gaussian0_sample(randombytes, ctx, &out[i], stats)) break;

@@ -173,3 +173,14 @@ Falcon commands:
 ```
 
 Advanced users may call `benchmark/scripts/run_falcon_benchmarks.sh` directly after building `benchmark_falcon_base_sampler`, `benchmark_falcon_breakdown`, and `test_falcon_base_sampler`.
+
+### Falcon fairness audit
+
+For same-binary paired auditing of Falcon Reference paths, build `benchmark_falcon_fairness` and run it with the same environment variables used by the Falcon benchmark:
+
+```bash
+FALCON_BENCH_SAMPLE_COUNT=1048576 FALCON_BENCH_REPETITIONS=31 FALCON_BENCH_WARMUP=5 taskset -c 0 ./build-benchmark/benchmark_falcon_fairness > build/benchmark-results/falcon-fairness/fairness.csv
+python3 benchmark/scripts/summarize_falcon_fairness.py build/benchmark-results/falcon-fairness/fairness.csv --out-prefix build/benchmark-results/falcon-fairness/falcon_fairness_summary
+```
+
+The fairness benchmark runs three paths in one executable and one process: `original-current`, `sda-old-generic`, and `sda-new-batch`. It uses independent cursors over identical source bytes, Latin-square execution order, and reports paired ratios (`sda_old_over_original`, `sda_new_over_original`, `sda_new_over_sda_old`) plus per-order medians. The `sda-old-generic` path is benchmark-only and is used only as an old-path oracle; it is not a production API.
