@@ -42,3 +42,21 @@ This benchmark covers only the portable half-Gaussian base sampler and does not 
 ## Paper-primary benchmark interpretation
 
 For the current paper draft, report portable/reference Original vs portable/reference SDA-CDT first. AVX2 benchmark rows are reproducible diagnostics and future-work data, not the main speedup claim. Keep `mapping_only` and `end_to_end` summaries separate.
+
+## Frodo benchmark modes and labels
+
+For Frodo sample_n results, use the canonical labels emitted by `benchmark_frodo_sample_n`: `original-reference`, `sda-word-reference`, `sda-packed-reference`, `original-avx2`, `sda-word-avx2`, and `sda-packed-avx2`.  The word `reference` denotes portable C compiled with the selected optimization flags; compiler auto-vectorization may occur.  Do not call these rows strict scalar unless using a separately documented strict-scalar-audit build with vectorization disabled.
+
+Equal-size throughput:
+
+```sh
+FRODO_BENCH_SAMPLE_COUNT=16384 FRODO_BENCH_REPETITIONS=31 ./build-benchmark/benchmark_frodo_sample_n
+```
+
+Scheme-native batch sizes:
+
+```sh
+FRODO_BENCH_NATIVE_BATCH=1 FRODO_BENCH_REPETITIONS=31 ./build-benchmark/benchmark_frodo_sample_n
+```
+
+The current paper-primary Frodo comparison is `original-reference` vs `sda-word-reference` for the same parameter set and mode.  AVX2 is reproducible future-work data and must not be mixed with reference backend rows.

@@ -1,5 +1,6 @@
 #include "frodo_sample_n.h"
 #include "frodo_sample_n_fast.h"
+#include "frodo_sampler.h"
 #include "sdat_avx2.h"
 #include <stdio.h>
 #include <string.h>
@@ -27,4 +28,10 @@ static int test_word_accounting_synthetic(void){
  for(int ti=0;ti<3;ti++){uint16_t words[3];words[0]=qs[ti];words[1]=(uint16_t)((1u<<bits[ti])-1u);words[2]=(uint16_t)(1u<<bits[ti]);uint16_t out=0;sdat_stats st={0};if(frodo_sda_word_sample_n(&out,1,words,3,tabs[ti],&st))return 120+ti;uint64_t logical_candidate=(uint64_t)bits[ti]*st.attempts;uint64_t logical_sign=1;uint64_t logical_used=logical_candidate+logical_sign;uint64_t discarded_sign=st.attempts-1;uint64_t unused=(uint64_t)(16-bits[ti]-1)*st.attempts;uint64_t physical=st.random_bytes*8;if(st.attempts!=3||st.rejections!=2||st.random_bits!=logical_used||physical!=48)return 130+ti;if(logical_used+discarded_sign+unused!=physical)return 140+ti;}
  return 0;
 }
-int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;if((r=test_word_accounting_synthetic()))return r;puts("frodo_sample_n tests passed");return 0;}
+
+static int test_dispatch_framework(void){
+ const frodo_sampler_params*p; uint8_t buf[512]; uint16_t words[512],a[64],b[64]; for(size_t i=0;i<sizeof buf;i++)buf[i]=(uint8_t)(i*17+5); for(size_t i=0;i<512;i++)words[i]=(uint16_t)(i*251u+7u);
+ for(int ti=0;ti<3;ti++){p=frodo_get_sampler_params((frodo_param_id)ti); if(!p||!p->original_table||!p->sda_table)return 150+ti; frodo_sampler_stats fs={0}; memcpy(a,words,sizeof a); if(frodo_sample_n_dispatch(FRODO_SAMPLER_ORIGINAL_CDT,FRODO_BACKEND_REFERENCE,FRODO_FRONTEND_ORIGINAL_WORD,(frodo_param_id)ti,a,64,buf,sizeof buf,words,512,&fs))return 160+ti; memcpy(b,words,sizeof b); if(frodo_original_sample_n(b,64,p->original_table))return 170+ti; if(memcmp(a,b,sizeof a))return 180+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_REFERENCE,FRODO_FRONTEND_PACKED_BIT,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 190+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_REFERENCE,FRODO_FRONTEND_WORD_ORIENTED,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 200+ti; if(sdat_avx2_cpu_supported()){ if(frodo_sample_n_dispatch(FRODO_SAMPLER_ORIGINAL_CDT,FRODO_BACKEND_AVX2,FRODO_FRONTEND_ORIGINAL_WORD,(frodo_param_id)ti,a,64,buf,sizeof buf,words,512,&fs))return 210+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_AVX2,FRODO_FRONTEND_PACKED_BIT,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 220+ti; if(frodo_sample_n_dispatch(FRODO_SAMPLER_SDA_CDT,FRODO_BACKEND_AVX2,FRODO_FRONTEND_WORD_ORIENTED,(frodo_param_id)ti,a,32,buf,sizeof buf,words,512,&fs))return 230+ti; }}
+ return 0;
+}
+int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;if((r=test_word_accounting_synthetic()))return r;if((r=test_dispatch_framework()))return r;puts("frodo_sample_n tests passed");return 0;}

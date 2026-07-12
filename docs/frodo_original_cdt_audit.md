@@ -4,12 +4,12 @@ This note records the audit for the anomalously low Frodo-640 Original CDT cycle
 
 ## Call path audited
 
-For the `official-original-scalar` benchmark rows, all three parameter sets use the same benchmark and wrapper layers:
+For the deprecated `official-original-scalar` rows (now `original-reference`), all three parameter sets use the same benchmark and wrapper layers:
 
 ```text
 benchmark_frodo_sample_n.c main()
 -> one(parameter_set, original_table, sda_table, sample_count, repetition)
--> run_impl("official-original-scalar", ...)
+-> unified Frodo dispatch for `original-reference`
 -> memcpy(out, words, sample_count * sizeof(uint16_t))
 -> frodo_original_sample_n(out, sample_count, original_table)
 -> parameter-table pointer dispatch
@@ -35,15 +35,15 @@ All three Original paths use `prnd = word >> 1`, `sign = word & 1`, strict offic
 
 ## Benchmark audit
 
-The benchmark copies exactly `sample_count` prepared 16-bit words into the output buffer before timing Original CDT, transforms the whole buffer in place during timing, and checksums exactly `sample_count` outputs after timing.  The large batches are 5120, 7808, and 10752 for Frodo-640, Frodo-976, and Frodo-1344.  The denominator is always the same `sample_count` printed in the CSV row.  There is no inner repeat in the timed Original path, no metrics/accounting mixed into timing rows, and no AVX2 call for the `official-original-scalar` label.
+The benchmark copies exactly `sample_count` prepared 16-bit words into the output buffer before timing Original CDT, transforms the whole buffer in place during timing, and checksums exactly `sample_count` outputs after timing.  The large batches are 5120, 7808, and 10752 for Frodo-640, Frodo-976, and Frodo-1344.  The denominator is always the same `sample_count` printed in the CSV row.  There is no inner repeat in the timed Original path, no metrics/accounting mixed into timing rows, and no AVX2 call for the `original-reference` label.
 
 The source words are deterministic but are allocated, filled, and copied at runtime per repetition, so the compiler cannot fold the benchmark result to constants.  The post-timing checksum prevents dead-code elimination of the output stores.
 
 ## Assembly and compiler behavior
 
-The release assembly confirms the root cause: the three helpers are all inlined into `frodo_original_sample_n`, but GCC chooses a much more SIMD-friendly lowered form for the Frodo-640 fixed scan.  On the audit host, the Frodo-640 branch contains vector integer operations on packed words (`xmm`/`ymm`, including shifts, broadcasts, compares, and packed arithmetic) and a vectorized loop over samples.  Frodo-976 and Frodo-1344 also have unrolled compare expressions at the source level, but the generated hot path retains a less efficient scalar/partly scalar loop shape for this compiler/build.  No path is constant-folded, and no Original scalar path calls the AVX2 implementation.
+The release assembly confirms the root cause: the three helpers are all inlined into `frodo_original_sample_n`, but GCC chooses a much more SIMD-friendly lowered form for the Frodo-640 fixed scan.  On the audit host, the Frodo-640 branch contains vector integer operations on packed words (`xmm`/`ymm`, including shifts, broadcasts, compares, and packed arithmetic) and a vectorized loop over samples.  Frodo-976 and Frodo-1344 also have unrolled compare expressions at the source level, but the generated hot path retains a less efficient scalar/partly scalar loop shape for this compiler/build.  No path is constant-folded, and no Original reference path calls the AVX2 implementation.
 
-Therefore the `scalar` label in this benchmark should be read as "optimized portable C": it is portable C source, but the compiler may auto-vectorize or otherwise lower it to SIMD instructions.
+Therefore the deprecated `scalar` label in older benchmark output should be read as `reference` / optimized portable C: it is portable C source, but the compiler may auto-vectorize or otherwise lower it to SIMD instructions.
 
 ## Correctness audit
 
@@ -52,3 +52,7 @@ Therefore the `scalar` label in this benchmark should be read as "optimized port
 ## Classification
 
 This audit classifies the anomaly as Case 1: a real compiler/build artifact in optimized portable C, not a benchmark denominator bug, not a missing threshold in Frodo-640, and not a Frodo-976/Frodo-1344 generic fallback asymmetry.  The paper should label these rows `optimized portable C`, not `strict scalar instruction implementation`.
+
+## Follow-up architecture cleanup
+
+The Frodo sample_n code now treats parameter set, sampler kind, backend, and frontend as orthogonal dispatch dimensions.  The canonical benchmark labels are `original-reference`, `original-avx2`, `sda-packed-reference`, `sda-packed-avx2`, `sda-word-reference`, and `sda-word-avx2`; the older `*-scalar` labels are deprecated because the reference backend is portable C and may be compiler-auto-vectorized.  The paper-primary interpretation remains reference-vs-reference (`original-reference` vs `sda-word-reference`) at the same parameter set and mode, while AVX2 is valid but future-work.

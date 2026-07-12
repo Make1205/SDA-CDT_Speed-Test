@@ -3,7 +3,7 @@
 This repository is split by responsibility:
 
 * `offline/`: table generation, exact-SVP/SDA solving, PMF/CDF/threshold export, certificates, verification tools, and offline correctness tests.
-* `online/`: production sampler/runtime code, reviewed Frodo/Falcon table mappings, scalar/AVX2 implementations, and online correctness tests.
+* `online/`: production sampler/runtime code, reviewed Frodo/Falcon table mappings, reference/AVX2 backend implementations, and online correctness tests.
 * `benchmark/`: performance-only benchmark sources, benchmark scripts, and benchmark result documentation.
 * `docs/`: phase notes, table-format notes, and reproducibility instructions.
 
@@ -60,3 +60,9 @@ The online Falcon addition is limited to the portable C half-Gaussian base sampl
 ## Reporting policy
 
 Paper-primary speed results should compare portable/reference Original against portable/reference SDA-CDT at the same benchmark scope. AVX2 implementations and cross-ISA comparisons are retained for correctness checks and future optimization work, but they are not the current paper-primary speedup claim.
+
+## Frodo sampler architecture
+
+Frodo uses one sampler framework.  Frodo-640, Frodo-976, and Frodo-1344 differ only by parameter data (q, candidate bit width, sign position, thresholds, threshold counts, support, and native batch metadata) plus backend-internal compile-time specializations selected through the shared dispatcher.  Original CDT and SDA-CDT are sampler kinds; `reference` and `avx2` are backends.  The reference backend is portable C compiled with the selected optimization flags, so compiler auto-vectorization may occur and it must not be described as a strict scalar-instruction implementation.  AVX2 is a separate backend implemented in AVX2-specific objects and is future-work for paper-primary speed claims.
+
+Paper-primary Frodo speed results compare `original-reference` with `sda-word-reference` at the same parameter set and benchmark mode.  Packed SDA rows describe the packed-bit frontend and randomness accounting separately.  AVX2 rows are valid diagnostics/future-work rows and must only be compared against AVX2 rows.
