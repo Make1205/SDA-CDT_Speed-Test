@@ -92,6 +92,27 @@ static int check_byte_order_and_rejection(void) {
     return 0;
 }
 
+
+static int check_no_stats_equivalence(void) {
+    size_t lens[] = {0,1,2,3,7,16,31,64,257,1024};
+    uint8_t buf[9 * 4096]; for (size_t i = 0; i < sizeof buf; i++) buf[i] = (uint8_t)(i * 29 + 11);
+    uint32_t a[1024], b[1024];
+    for (size_t li = 0; li < sizeof(lens)/sizeof(lens[0]); li++) {
+        size_t n = lens[li];
+        bytes_ctx o1 = {buf, sizeof buf, 0}, o2 = {buf, sizeof buf, 0}; sdat_stats ost = {0};
+        if (falcon_original_gaussian0_sample_n(bytes_cb, &o1, a, n, 0) != n) return 49;
+        if (falcon_original_gaussian0_sample_n(bytes_cb, &o2, b, n, &ost) != n) return 50;
+        if (memcmp(a, b, n * sizeof a[0]) || o1.pos != o2.pos || ost.random_bytes != o2.pos || ost.rejections) return 51;
+        bytes_ctx c1 = {buf, sizeof buf, 0}, c2 = {buf, sizeof buf, 0}; sdat_stats st = {0};
+        if (falcon_sda_gaussian0_sample_n(bytes_cb, &c1, a, n, 0) != n) return 52;
+        if (falcon_sda_gaussian0_sample_n(bytes_cb, &c2, b, n, &st) != n) return 53;
+        if (memcmp(a, b, n * sizeof a[0])) return 54;
+        if (c1.pos != c2.pos || st.random_bytes != c2.pos || st.random_bits != st.attempts * 72) return 55;
+        if (st.rejections + n != st.attempts) return 56;
+    }
+    return 0;
+}
+
 static int check_batch(void) {
     uint8_t buf[9 * 20]; for (size_t i = 0; i < sizeof buf; i++) buf[i] = (uint8_t)(i * 17 + 3);
     uint32_t out[20]; bytes_ctx c = {buf, sizeof buf, 0}; sdat_stats st;
@@ -108,6 +129,7 @@ int main(void) {
     if ((r = check_sda_boundaries())) return r;
     if ((r = check_byte_order_and_rejection())) return r;
     if ((r = check_batch())) return r;
+    if ((r = check_no_stats_equivalence())) return r;
     puts("falcon base sampler tests passed");
     return 0;
 }

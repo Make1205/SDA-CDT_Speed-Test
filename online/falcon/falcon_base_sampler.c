@@ -51,7 +51,21 @@ int falcon_original_gaussian0_sample(sdat_randombytes_fn randombytes, void *ctx,
 
 size_t falcon_original_gaussian0_sample_n(sdat_randombytes_fn randombytes, void *ctx, uint32_t *out, size_t n, sdat_stats *stats) {
     if (!out && n) return 0;
-    if (stats) *stats = (sdat_stats){0};
+    if (!randombytes && n) return 0;
+    if (!stats) {
+        const sdat_u72 *thr = (const sdat_u72 *)original_cdt_table_falcon_base.thresholds;
+        const size_t tn = original_cdt_table_falcon_base.threshold_count;
+        size_t i = 0;
+        for (; i < n; i++) {
+            uint8_t b[FALCON_BASE_RANDOM_BYTES];
+            if (randombytes(ctx, b, sizeof b)) return i;
+            uint32_t y = online_lookup_u72_reverse_tail(sdat_u72_from_le9(b), thr, tn);
+            if (y > FALCON_BASE_SUPPORT_MAX) return i;
+            out[i] = y;
+        }
+        return i;
+    }
+    *stats = (sdat_stats){0};
     size_t i = 0;
     for (; i < n; i++) {
         if (falcon_original_gaussian0_sample(randombytes, ctx, &out[i], stats)) break;
@@ -80,7 +94,29 @@ int falcon_sda_gaussian0_sample(sdat_randombytes_fn randombytes, void *ctx, uint
 
 size_t falcon_sda_gaussian0_sample_n(sdat_randombytes_fn randombytes, void *ctx, uint32_t *out, size_t n, sdat_stats *stats) {
     if (!out && n) return 0;
-    if (stats) *stats = (sdat_stats){0};
+    if (!randombytes && n) return 0;
+    if (!stats) {
+        const sdat_u72 *thr = (const sdat_u72 *)sda_table_falcon_base.thresholds;
+        const size_t tn = sda_table_falcon_base.threshold_count;
+        const sdat_u72 q = sda_table_falcon_base.denominator_u72;
+        size_t i = 0;
+        for (; i < n; i++) {
+            sdat_u72 x;
+            do {
+                uint8_t b[FALCON_BASE_RANDOM_BYTES];
+                if (randombytes(ctx, b, sizeof b)) return i;
+                x = sdat_u72_from_le9(b);
+            } while (sdat_u72_ge(x, q));
+            uint32_t y = 0;
+            for (size_t j = 0; j < tn; j++) {
+                y += (uint32_t)sdat_u72_ge(x, thr[j]);
+            }
+            if (y > FALCON_BASE_SUPPORT_MAX) return i;
+            out[i] = y;
+        }
+        return i;
+    }
+    *stats = (sdat_stats){0};
     size_t i = 0;
     for (; i < n; i++) {
         if (falcon_sda_gaussian0_sample(randombytes, ctx, &out[i], stats)) break;

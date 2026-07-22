@@ -1,5 +1,27 @@
 # Benchmarks
 
+## Quick Start
+
+From the repository root:
+
+```bash
+./benchmark/run_frodo.sh
+```
+
+This configures, builds, tests, benchmarks, and generates compact summaries.
+
+Other modes:
+
+```bash
+./benchmark/run_frodo.sh quick
+./benchmark/run_frodo.sh both
+./benchmark/run_frodo.sh large
+```
+
+`quick` mode is for tooling validation only; do not use quick results for performance claims. Advanced users can still call `benchmark/scripts/run_frodo_benchmarks.sh` directly after building benchmark targets.
+
+## Advanced Usage
+
 This directory contains performance-only code and scripts. Production table
 generation/certification remains under `offline/`, and runtime samplers remain
 under `online/`.
@@ -10,8 +32,7 @@ Frodo production tables are frozen for this workflow:
 - Frodo-976 SDA q = 7442
 - Frodo-1344 SDA q = 102
 
-Build benchmark targets explicitly with `-DSDA_BUILD_BENCHMARKS=ON`, for
-example:
+For manual workflows, build benchmark targets explicitly with `-DSDA_BUILD_BENCHMARKS=ON`, for example:
 
 ```sh
 cmake -S . -B build-benchmark -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=ON
@@ -42,4 +63,124 @@ Use `paper-primary` for portable/reference Original-vs-SDA rows at the same scop
 | `sda-word-scalar` | `sda-word-reference` |
 | `sda-word-avx2` | `sda-word-avx2` |
 
-The benchmark defaults to equal-size throughput (`FRODO_BENCH_SAMPLE_COUNT=16384`).  Set `FRODO_BENCH_NATIVE_BATCH=1` to use Frodo-native batch sizes (5120, 7808, 10752).  `FRODO_BENCH_REPETITIONS`, `FRODO_BENCH_WARMUP`, and `FRODO_BENCH_ORDER_SEED` control repetitions, warmup, and deterministic parameter/order rotation.  Paper-primary rows are reference-vs-reference only; AVX2 rows are future-work diagnostics.
+The benchmark defaults to equal-size throughput (`FRODO_BENCH_SAMPLE_COUNT=1048576`).  Set `FRODO_BENCH_NATIVE_BATCH=1` to use Frodo-native batch sizes (5120, 7808, 10752).  `FRODO_BENCH_REPETITIONS`, `FRODO_BENCH_WARMUP`, and `FRODO_BENCH_ORDER_SEED` control repetitions, warmup, and deterministic parameter/order rotation.  Paper-primary rows are reference-vs-reference only; AVX2 rows are future-work diagnostics.
+
+## Frodo breakdown and compact summary
+
+`benchmark_frodo_sample_n` measures the full sampler core using pre-generated input buffers. It does not include a real PRG/RNG backend. Therefore Frodo benchmark claims are **sampler core only**, not PRG + sampler. The full core boundary is source frontend/rejection plus CDT mapping/sign/output commit. `benchmark_frodo_breakdown` separates benchmark-only components named `source-frontend`, `cdt-mapping`, and `full-sampler-core`; `rng-generation` is reported by the summary as `not_in_benchmark` / `N/A (pre-generated source)` unless a real PRG benchmark is added later.
+
+The equal-size default is `FRODO_BENCH_SAMPLE_COUNT=1048576`. Formal runs should use at least `FRODO_BENCH_WARMUP=5`, `FRODO_BENCH_REPETITIONS=31`, `FRODO_BENCH_PROCESSES=3`, and a fixed `FRODO_BENCH_CPU`.
+
+```sh
+cmake -S . -B build-benchmark -DCMAKE_BUILD_TYPE=Release -DSDA_BUILD_BENCHMARKS=ON
+cmake --build build-benchmark --target benchmark_frodo_sample_n benchmark_frodo_breakdown test_frodo_sample_n -j
+benchmark/scripts/run_frodo_benchmarks.sh
+```
+
+The runner writes raw CSV files and compact summaries under `build/benchmark-results/` by default:
+
+- `frodo_sample_n_raw.csv`
+- `frodo_breakdown_raw.csv`
+- `frodo_summary.csv`
+- `frodo_summary.md`
+- `frodo_summary.json`
+
+Summary groups are keyed by `parameter_set`, `sampler_kind`, `backend`, `frontend`, `component`, `implementation`, and `sample_count`. Statistical definitions are fixed as follows:
+
+- `median`: ordinary median.
+- `MAD`: median absolute deviation.
+- `IQR outlier`: any value `x < Q1 - 1.5*IQR` or `x > Q3 + 1.5*IQR`.
+- `low_noise_median`: median after removing IQR outliers.
+
+Outliers are reported via `outlier_count`; raw median and low-noise median are both retained.
+
+`benchmark_frodo_sample_n` full raw schema:
+
+| Field | Meaning |
+| --- | --- |
+| `scheme`, `parameter_set` | Benchmark family and Frodo parameter instance. |
+| `sampler_kind`, `backend`, `frontend`, `implementation` | Sampler family, backend, input frontend, and canonical implementation label. |
+| `component` | Fixed component enum; full rows use `full-sampler-core`. |
+| `mode` | `equal-size` or `native-batch`; never mixed by summary grouping. |
+| `sample_count`, `process_id`, `repetition` | Work size, OS process id, and repetition index. |
+| `cycles_total`, `cycles_per_output` | Timed cycles for the row. |
+| `attempts_per_output`, `rejections_per_output` | Source attempts and rejections per output. |
+| `logical_bits_per_output`, `physical_bits_per_output` | Logical consumed bits and physical source bits per output. |
+| `checksum`, `status` | Output checksum and row status; non-`ok` rows are counted but excluded from valid statistics. |
+
+`benchmark_frodo_breakdown` raw schema adds `cycles_per_attempt`, `accepted_outputs`, and `source_words`. Its actual generated components are `source-frontend`, `cdt-mapping`, and `full-sampler-core`; `rng-generation` and `prg-plus-full-sampler` are not generated because no real PRG is in this benchmark. Original source frontend measures one pre-generated `uint16_t` word per output with no SDA rejection. SDA source frontend measures word reads, candidate masking, sign extraction, `candidate < q`, rejection/source consumption, accepted outputs, source words, attempts/output, and rejections/output.
+
+Component timings are standalone microbenchmarks and are not additive. The production full sampler fuses source frontend, rejection, lookup, sign, and output commit in one loop.
+
+Summary groups are keyed by `parameter_set`, `sampler_kind`, `backend`, `frontend`, `component`, `mode`, `implementation`, and `sample_count`. The summary retains pooled statistics and process-level statistics. Formal comparison tables use `median_of_process_medians` as the primary value; pooled medians and low-noise medians are also reported.
+
+Additional statistical definitions:
+
+- Percentiles (`p10`, `p25`, `p75`, `p90`) use linear interpolation between sorted samples at rank `(n - 1) * p / 100`; one-sample groups return that sample.
+- `sample_stdev` is the sample standard deviation; one-sample valid groups report `0`.
+- `cv` is `sample_stdev / mean` when the mean is nonzero.
+- `valid_n` counts only `status=ok` rows with a numeric `cycles_per_output`; `error_count` counts excluded rows.
+- `low_noise_median` removes only IQR outliers; if removal leaves no rows, it falls back to the pooled median and marks `low_noise_fallback=true`.
+
+Formal equal-size run:
+
+```bash
+FRODO_BENCH_SAMPLE_COUNT=1048576 FRODO_BENCH_REPETITIONS=31 FRODO_BENCH_WARMUP=5 FRODO_BENCH_PROCESSES=3 FRODO_BENCH_CPU=0 FRODO_BENCH_MODE=equal-size FRODO_BENCH_RESULTS_DIR=build/benchmark-results/formal-equal benchmark/scripts/run_frodo_benchmarks.sh
+```
+
+Formal both-modes run:
+
+```bash
+FRODO_BENCH_SAMPLE_COUNT=1048576 FRODO_BENCH_REPETITIONS=31 FRODO_BENCH_WARMUP=5 FRODO_BENCH_PROCESSES=3 FRODO_BENCH_CPU=0 FRODO_BENCH_MODE=both FRODO_BENCH_RESULTS_DIR=build/benchmark-results/formal-both benchmark/scripts/run_frodo_benchmarks.sh
+```
+
+For a larger optional formal run, set `FRODO_BENCH_SAMPLE_COUNT=4194304`.
+
+## Falcon Base Sampler Quick Start
+
+From the repository root:
+
+```bash
+./benchmark/run_falcon.sh
+```
+
+This configures, builds, tests, benchmarks, and summarizes the Falcon base half-Gaussian sampler.
+
+The benchmark compares the Original Falcon base sampler against the SDA Falcon base sampler using Falcon-native 72-bit source semantics. It measures only the shared Falcon base Gaussian0 half-Gaussian sampler (`sigma0 = 1.8205`, support `0..18`); it is not samplerZ, not BerExp, not FFT sampling, and not the signing flow.
+
+Falcon formal/quick presets mirror the Frodo workflow where that is a benchmark-framework concern, but the sampler architecture remains Falcon-native: 9 little-endian source bytes construct one 72-bit `sdat_u72` attempt, Original uses the Falcon reverse-tail CDT lookup, and SDA uses Falcon 72-bit rejection against its denominator followed by cumulative lookup. No Falcon benchmark uses Frodo word-oriented or packed-bit frontends.
+
+The Falcon benchmark boundary is sampler-core/source-extraction over pre-generated PRNG source bytes. It does not time real PRNG generation/refill, so summaries report `rng_generation_status = not_in_benchmark` and `RNG generation = N/A (pre-generated PRNG source/state)`.
+
+Falcon raw outputs are written under `build/benchmark-results/falcon-*` by default:
+
+- `falcon_base_sampler_raw.csv`
+- `falcon_breakdown_raw.csv`
+- `falcon_summary.csv`
+- `falcon_summary.md`
+- `falcon_summary.json`
+
+Full Falcon raw schema: `scheme`, `parameter_set`, `sampler_kind`, `backend`, `frontend`, `component`, `mode`, `implementation`, `sample_count`, `process_id`, `repetition`, `cycles_total`, `cycles_per_output`, `attempts_per_output`, `rejections_per_output`, `source_bytes_per_attempt`, `physical_bytes_per_output`, `random_precision_bits`, `checksum`, `status`.
+
+Breakdown Falcon raw schema adds `cycles_per_attempt`, `accepted_outputs`, and `source_bytes`. Actual components are `source-frontend`, `cdt-mapping`, and `full-sampler-core`; `rng-generation` and `prg-plus-full-sampler` are not generated without a real timed Falcon PRNG backend. Component timings are standalone microbenchmarks and are not additive.
+
+Falcon commands:
+
+```bash
+./benchmark/run_falcon.sh          # formal equal-size
+./benchmark/run_falcon.sh quick    # tooling validation only
+./benchmark/run_falcon.sh large    # larger formal equal-size
+```
+
+Advanced users may call `benchmark/scripts/run_falcon_benchmarks.sh` directly after building `benchmark_falcon_base_sampler`, `benchmark_falcon_breakdown`, and `test_falcon_base_sampler`.
+
+### Falcon fairness audit
+
+For same-binary paired auditing of Falcon Reference paths, build `benchmark_falcon_fairness` and run it with the same environment variables used by the Falcon benchmark:
+
+```bash
+FALCON_BENCH_SAMPLE_COUNT=1048576 FALCON_BENCH_REPETITIONS=31 FALCON_BENCH_WARMUP=5 taskset -c 0 ./build-benchmark/benchmark_falcon_fairness > build/benchmark-results/falcon-fairness/fairness.csv
+python3 benchmark/scripts/summarize_falcon_fairness.py build/benchmark-results/falcon-fairness/fairness.csv --out-prefix build/benchmark-results/falcon-fairness/falcon_fairness_summary
+```
+
+The fairness benchmark runs three paths in one executable and one process: `original-current`, `sda-old-generic`, and `sda-new-batch`. It uses independent cursors over identical source bytes, Latin-square execution order, and reports paired ratios (`sda_old_over_original`, `sda_new_over_original`, `sda_new_over_sda_old`) plus per-order medians. The `sda-old-generic` path is benchmark-only and is used only as an old-path oracle; it is not a production API.
