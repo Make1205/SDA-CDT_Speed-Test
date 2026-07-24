@@ -27,6 +27,11 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
     sda_config c;
     if (sda_config_load(cp, &c)) return 0;
     size_t n = (size_t)(c.support_max - c.support_min + 1);
+    if (t->table_length != n || c.precision_k <= 0 || c.precision_k >= 128 ||
+        t->denominator >= ((sda_u128)1 << c.precision_k)) {
+        fprintf(stderr, "%s: support length or q < 2^k constraint failed\n", t->parameter_set);
+        return 0;
+    }
     mpfr_t a[32], tail, gs;
     for (size_t j = 0; j < n; j++) mpfr_init2(a[j], c.mpfr_precision);
     mpfr_inits2(c.mpfr_precision, tail, gs, (mpfr_ptr)0);
@@ -46,7 +51,11 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
         sda_generation_result r;
         sda_generation_result_init(&r, c.mpfr_precision);
         int rc = sda_generate_for_config(&c, "exact-linf-svp", &r);
-        selection_ok = (rc == 0 && t->denominator < ((sda_u128)1 << c.precision_k) && r.baseline_dominance_certified && r.production_eligible && r.final_q_from_exact_svp);
+        selection_ok = (rc == 0 && r.q == t->denominator && r.baseline_dominance_certified &&
+                        r.production_eligible && r.final_q_from_exact_svp &&
+                        !r.pmf_is_fixed_q_normalized);
+        for (size_t j = 0; selection_ok && j < n; j++)
+            if (r.p[j] != p[j] || r.raw_svp_p[j] != p[j]) selection_ok = 0;
         sda_generation_result_clear(&r);
     }
     int type_ok = 1;
@@ -72,8 +81,12 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
 }
 
 int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+    int all = argc == 2 && !strcmp(argv[1], "--all");
+    if (argc != 1 && !all) { fprintf(stderr, "usage: verify_sdat [--all]\n"); return 2; }
+    if (all && sda_generated_tables_count == 0) {
+        fprintf(stderr, "no SDA production tables are compiled in\n");
+        return 1;
+    }
     FILE *rep = fopen("offline/generated/sda_verification_report.txt", "w");
     if (!rep) return 1;
     fprintf(rep, "structural_valid=true\ntarget_distribution_recomputed=true\n");

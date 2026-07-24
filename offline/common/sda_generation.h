@@ -22,5 +22,12 @@ int sda_generate_distribution(const sda_config *cfg, mpfr_t *alpha, size_t n, mp
 int sda_fixed_q_minmax(mpfr_t *alpha, size_t n, sda_u128 q, sda_u128 *p, mpfr_t max_scaled, mpfr_t max_abs, mpfr_t l1);
 int sda_search_exact_denominator(const sda_config *cfg, mpfr_t *alpha, size_t n, sda_generation_result *out);
 int sda_search_application(const sda_config *cfg, mpfr_t *alpha, size_t n, sda_generation_result *out);
+/* Generate and validate exactly one paper-algorithm epsilon instance.  The
+ * returned PMF is the SVP vector; this function never rounds or normalizes it. */
+int sda_generate_for_epsilon(const sda_config *cfg, mpfr_t epsilon, sda_generation_result *out);
+/* Public chiefly so rejection rules can be unit tested before unsigned table
+ * storage is populated. */
+int sda_validate_signed_candidate(const sda_config *cfg, const long long *p,
+                                  size_t n, sda_u128 q);
 int sda_generate_for_config(const sda_config *cfg, const char *solver, sda_generation_result *out);
 #endif
