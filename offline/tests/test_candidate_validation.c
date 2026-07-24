@@ -7,10 +7,14 @@ int main(void) {
     const long long valid[] = {40, 30, 20, 10, 2};
     const long long wrong_sum[] = {40, 30, 20, 10, 1};
     const long long negative[] = {40, 30, -1, 31, 2};
+    const long long hole[] = {40, 0, 30, 30, 2};
+    const long long trailing[] = {40, 30, 20, 12, 0};
     if (sda_validate_signed_candidate(&c, valid, 5, 102)) return 2;
     if (!sda_validate_signed_candidate(&c, wrong_sum, 5, 102)) return 3;
     if (!sda_validate_signed_candidate(&c, negative, 5, 102)) return 4;
     if (!sda_validate_signed_candidate(&c, valid, 5, 128)) return 5;
     if (!sda_validate_signed_candidate(&c, valid, 5, 0)) return 6;
+    if (!sda_validate_signed_candidate(&c, hole, 5, 102)) return 7;
+    if (sda_validate_signed_candidate(&c, trailing, 5, 102)) return 8;
     return 0;
 }

@@ -7,6 +7,8 @@
 #include "sda_generation.h"
 #include "sda_lll.h"
 #include "sda_baseline.h"
+#include "sda_random_driver.h"
+#include <stdint.h>
 static void print_mp(FILE*f,mpfr_t x){ mpfr_out_str(f,10,18,x,MPFR_RNDN); }
 static void u(FILE*f,sda_u128 v){ char b[64]; sda_print_u128(v,b,sizeof b); fputs(b,f); }
 static void set_mp_u128(mpfr_t r,sda_u128 v){ mpfr_set_ui_2exp(r,(unsigned long)(v>>64),64,MPFR_RNDN); mpfr_add_ui(r,r,(unsigned long)v,MPFR_RNDN); }
@@ -24,7 +26,7 @@ static int write_outputs(sda_generation_result*r,const char**names,size_t m,int 
  fprintf(h,"static const sda_table sda_generated_tables[]={\n"); for(size_t i=0;i<m;i++){ size_t cbytes=cbytes_for_q(r[i].q); fprintf(h,"{\"%s\",\"%s\",\"%s\",0,%zu,%d,%d,%d,0,%zu,", strstr(names[i],"falcon")?"Falcon":"Frodo",names[i],r[i].solver,r[i].n-1,r[i].q_bits,(r[i].final_q_from_exact_svp?r[i].exact_linf_svp:0),r[i].heuristic,r[i].n); uexpr(h,r[i].q); fprintf(h,",sda_%s_p,sda_%s_c,%zu,%zu}%s\n",names[i],names[i],r[i].n*cbytes,r[i].n*(size_t)r[i].threshold_bits,i+1<m?",":""); } fprintf(h,"};\nstatic const size_t sda_generated_tables_count=%zu;\n#endif\n",m); fprintf(baseh,"static const sda_table *original_baseline_tables[]={\n  \&orig_frodo640_table,\n  \&orig_frodo976_table,\n  \&orig_frodo1344_table\n};\nstatic const size_t original_baseline_tables_count=3;\n#endif\n"); fclose(baseh); fclose(app); fclose(pareto); fclose(bmet); fclose(asel); fclose(h); fclose(csv); fclose(met); fclose(rep); fclose(cand); return 0; }
 int main(int argc,char**argv){
  setenv("SDA_TRACE_CANDIDATES","1",1); remove("offline/generated/sda_all_candidates.csv"); remove("offline/generated/sda_feasible_candidates.csv"); remove("offline/generated/sda_rejected_candidates.csv");
- int all=0,all_available=0,repro=0; const char*cfg=0,*solver=0,*epsilon=0;
+ int all=0,all_available=0,repro=0,random_epsilon=0; const char*cfg=0,*solver=0,*epsilon=0; uint64_t seed=1; unsigned max_trials=256;
  for(int i=1;i<argc;i++){
   if(!strcmp(argv[i],"--all"))all=1;
   else if(!strcmp(argv[i],"--all-available")){all=1;all_available=1;}
@@ -32,12 +34,21 @@ int main(int argc,char**argv){
   else if(!strcmp(argv[i],"--config")&&i+1<argc)cfg=argv[++i];
   else if(!strcmp(argv[i],"--solver")&&i+1<argc)solver=argv[++i];
   else if(!strcmp(argv[i],"--epsilon")&&i+1<argc)epsilon=argv[++i];
+  else if(!strcmp(argv[i],"--random-epsilon"))random_epsilon=1;
+  else if(!strcmp(argv[i],"--seed")&&i+1<argc)seed=strtoull(argv[++i],0,0);
+  else if(!strcmp(argv[i],"--max-trials")&&i+1<argc){unsigned long v=strtoul(argv[++i],0,10);if(!v||v>1000000UL){fprintf(stderr,"invalid --max-trials\n");return 2;}max_trials=(unsigned)v;}
   else { fprintf(stderr,"unknown or incomplete argument: %s\n",argv[i]); return 2; }
  }
  sda_generation_result r[4]; const char*names[4]={"frodo640","frodo976","frodo1344","falcon"};
  const char*paths[4]={"offline/configs/frodo640.conf","offline/configs/frodo976.conf","offline/configs/frodo1344.conf","offline/configs/falcon.conf"};
  const char*solv[4]={"exact-linf-svp","exact-linf-svp","exact-linf-svp","exact-linf-svp"};
  size_t m=0; int failures=0;
+ if(random_epsilon){
+  if(epsilon){fprintf(stderr,"--epsilon and --random-epsilon are mutually exclusive\n");return 2;}
+  if(all){for(size_t i=0;i<4;i++)if(sda_random_generate_config(paths[i],seed,max_trials))failures++;return failures?2:0;}
+  if(!cfg){fprintf(stderr,"--random-epsilon requires --config or --all\n");return 2;}
+  return sda_random_generate_config(cfg,seed,max_trials);
+ }
  if(all){
   for(size_t i=0;i<3;i++){
     int rc=one(paths[i],solv[i],0,&r[m]);

@@ -5,6 +5,7 @@
 #include "original_baseline_tables.h"
 #include "sda_generation.h"
 #include "sda_metrics.h"
+#include "sda_epsilon.h"
 
 static const char *cfg_for(const char *p) {
     if (!strcmp(p, "frodo640")) return "offline/configs/frodo640.conf";
@@ -14,6 +15,15 @@ static const char *cfg_for(const char *p) {
     return 0;
 }
 static void pr(FILE *f, mpfr_t x) { mpfr_out_str(f, 10, 18, x, MPFR_RNDN); }
+static int verify_generated_dir(const char *dir) {
+    const char *name = strstr(dir,"frodo640")?"frodo640":strstr(dir,"frodo976")?"frodo976":strstr(dir,"frodo1344")?"frodo1344":strstr(dir,"falcon")?"falcon":0;
+    if(!name){fprintf(stderr,"cannot infer parameter set from %s\n",dir);return 1;}
+    char path[256],qtxt[80],ptxt[80];snprintf(path,sizeof path,"%s/selected_table.txt",dir);FILE*f=fopen(path,"r");if(!f){perror(path);return 1;}
+    if(fscanf(f,"q=%79s\n",qtxt)!=1){fclose(f);return 1;}sda_u128 q;if(sda_parse_u128(qtxt,&q)){fclose(f);return 1;}char tag[8];if(fscanf(f,"%7[^=]=",tag)!=1||strcmp(tag,"p")){fclose(f);return 1;}
+    sda_config c;char cfg[128];snprintf(cfg,sizeof cfg,"offline/configs/%s.conf",name);if(sda_config_load(cfg,&c)){fclose(f);return 1;}size_t n=(size_t)(c.support_max-c.support_min+1);sda_u128 p[32],cum[32];for(size_t i=0;i<n;i++){if(fscanf(f,"%79s",ptxt)!=1||sda_parse_u128(ptxt,&p[i])){fclose(f);return 1;}}fclose(f);sda_u128 built=0;sda_build_cumulative(p,n,cum,&built);sda_table t={c.scheme,c.parameter_set,"generated-directory",0,n-1,c.precision_k,0,!strcmp(c.scheme,"Falcon"),0,n,q,p,cum,0,0};char err[128]="structural constraint failed";if(built!=q||q>=(((sda_u128)1)<<c.precision_k)||sda_validate_table(&t,err,sizeof err)){fprintf(stderr,"%s: invalid generated table: %s\n",name,err);return 1;}
+    int zero=0;for(size_t i=0;i<n;i++){if(!p[i])zero=1;else if(zero){fprintf(stderr,"%s: internal zero mass\n",name);return 1;}}
+    mpfr_t a[32],tail,gs;for(size_t i=0;i<n;i++)mpfr_init2(a[i],c.mpfr_precision);mpfr_inits2(c.mpfr_precision,tail,gs,(mpfr_ptr)0);sda_generate_distribution(&c,a,n,tail,gs);sda_metrics m;sda_metrics_init(&m,c.mpfr_precision);sda_compute_metrics(a,n,p,q,c.renyi_order,&m);printf("%s verified: q, p, CDF, support, pointwise error, SD and RD valid; heuristic_bkz=%s exact_svp=%s\n",name,!strcmp(c.scheme,"Falcon")?"true":"false",!strcmp(c.scheme,"Falcon")?"false":"true");sda_metrics_clear(&m);for(size_t i=0;i<n;i++)mpfr_clear(a[i]);mpfr_clears(tail,gs,(mpfr_ptr)0);return 0;
+}
 
 static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
     char e[128];
@@ -80,6 +90,7 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
 }
 
 int main(int argc, char **argv) {
+    if(argc==3&&!strcmp(argv[1],"--generated"))return verify_generated_dir(argv[2]);
     int all = argc == 2 && !strcmp(argv[1], "--all");
     if (argc != 1 && !all) { fprintf(stderr, "usage: verify_sdat [--all]\n"); return 2; }
     if (all && sda_generated_tables_count == 0) {
