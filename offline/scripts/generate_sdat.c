@@ -26,7 +26,7 @@ static int write_outputs(sda_generation_result*r,const char**names,size_t m,int 
  fprintf(h,"static const sda_table sda_generated_tables[]={\n"); for(size_t i=0;i<m;i++){ size_t cbytes=cbytes_for_q(r[i].q); fprintf(h,"{\"%s\",\"%s\",\"%s\",0,%zu,%d,%d,%d,0,%zu,", strstr(names[i],"falcon")?"Falcon":"Frodo",names[i],r[i].solver,r[i].n-1,r[i].q_bits,(r[i].final_q_from_exact_svp?r[i].exact_linf_svp:0),r[i].heuristic,r[i].n); uexpr(h,r[i].q); fprintf(h,",sda_%s_p,sda_%s_c,%zu,%zu}%s\n",names[i],names[i],r[i].n*cbytes,r[i].n*(size_t)r[i].threshold_bits,i+1<m?",":""); } fprintf(h,"};\nstatic const size_t sda_generated_tables_count=%zu;\n#endif\n",m); fprintf(baseh,"static const sda_table *original_baseline_tables[]={\n  \&orig_frodo640_table,\n  \&orig_frodo976_table,\n  \&orig_frodo1344_table\n};\nstatic const size_t original_baseline_tables_count=3;\n#endif\n"); fclose(baseh); fclose(app); fclose(pareto); fclose(bmet); fclose(asel); fclose(h); fclose(csv); fclose(met); fclose(rep); fclose(cand); return 0; }
 int main(int argc,char**argv){
  setenv("SDA_TRACE_CANDIDATES","1",1); remove("offline/generated/sda_all_candidates.csv"); remove("offline/generated/sda_feasible_candidates.csv"); remove("offline/generated/sda_rejected_candidates.csv");
- int all=0,all_available=0,repro=0,random_epsilon=0,diagnose=0; const char*cfg=0,*solver=0,*epsilon=0,*diagnostic_output=0; uint64_t seed=1; unsigned max_trials=256;
+ int all=0,all_available=0,repro=0,random_epsilon=0,diagnose=0; const char*cfg=0,*solver=0,*epsilon=0,*diagnostic_output=0; uint64_t seed=1; unsigned max_trials=256,top_count=5;
  for(int i=1;i<argc;i++){
   if(!strcmp(argv[i],"--all"))all=1;
   else if(!strcmp(argv[i],"--all-available")){all=1;all_available=1;}
@@ -38,6 +38,7 @@ int main(int argc,char**argv){
   else if(!strcmp(argv[i],"--diagnose"))diagnose=1;
   else if(!strcmp(argv[i],"--diagnostic-output")&&i+1<argc)diagnostic_output=argv[++i];
   else if(!strcmp(argv[i],"--seed")&&i+1<argc)seed=strtoull(argv[++i],0,0);
+  else if(!strcmp(argv[i],"--top-count")&&i+1<argc){unsigned long v=strtoul(argv[++i],0,10);if(!v||v>1000UL){fprintf(stderr,"invalid --top-count\n");return 2;}top_count=(unsigned)v;}
   else if(!strcmp(argv[i],"--max-trials")&&i+1<argc){unsigned long v=strtoul(argv[++i],0,10);if(!v||v>1000000UL){fprintf(stderr,"invalid --max-trials\n");return 2;}max_trials=(unsigned)v;}
   else { fprintf(stderr,"unknown or incomplete argument: %s\n",argv[i]); return 2; }
  }
@@ -47,9 +48,9 @@ int main(int argc,char**argv){
  size_t m=0; int failures=0;
  if(random_epsilon){
   if(epsilon){fprintf(stderr,"--epsilon and --random-epsilon are mutually exclusive\n");return 2;}
-  if(all){if(diagnostic_output){fprintf(stderr,"--diagnostic-output with --all is ambiguous; run each config separately\n");return 2;}for(size_t i=0;i<4;i++)if(sda_random_generate_config(paths[i],seed,max_trials,0))failures++;return failures?2:0;}
+  if(all){if(diagnostic_output){fprintf(stderr,"--diagnostic-output with --all is ambiguous; run each config separately\n");return 2;}for(size_t i=0;i<4;i++)if(sda_random_generate_config(paths[i],seed,max_trials,top_count,0))failures++;return failures?2:0;}
   if(!cfg){fprintf(stderr,"--random-epsilon requires --config or --all\n");return 2;}
-  return sda_random_generate_config(cfg,seed,max_trials,diagnose?diagnostic_output:0);
+  return sda_random_generate_config(cfg,seed,max_trials,top_count,diagnose?diagnostic_output:0);
  }
  if(all){
   for(size_t i=0;i<3;i++){

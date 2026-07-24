@@ -1,0 +1,3 @@
+#include <string.h>
+#include "sda_random_driver.h"
+int main(void){sda_candidate_set s;if(sda_candidate_set_init(&s,128))return 1;sda_u128 p1[3]={2,1,0},p2[3]={1,2,0},c1[3]={2,3,3},c2[3]={1,3,3};mpfr_t a,b,c;mpfr_inits2(128,a,b,c,(mpfr_ptr)0);mpfr_set_d(a,.2,MPFR_RNDN);mpfr_set_d(b,.3,MPFR_RNDN);mpfr_set_d(c,1.01,MPFR_RNDN);unsigned qf=7;if(sda_candidate_set_add(&s,3,3,p1,c1,1,".4",a,b,c,&qf)!=1)return 2;if(sda_candidate_set_add(&s,3,3,p1,c1,2,".5",a,b,c,&qf)!=0)return 3;if(s.count!=1||s.items[0].occurrences!=2||s.items[0].first_trial!=1)return 4;if(sda_candidate_set_add(&s,3,3,p2,c2,3,".6",a,b,c,&qf)!=1)return 5;if(s.count!=2||!memcmp(s.items[0].p,s.items[1].p,3*sizeof(sda_u128)))return 6;sda_candidate_set_clear(&s);mpfr_clears(a,b,c,(mpfr_ptr)0);return 0;}

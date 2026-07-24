@@ -90,8 +90,13 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
     return selection_ok && type_ok && baseline_ok;
 }
 
+static int verify_candidate_file(const char *file,const char *cfgpath) {
+    sda_config c;if(sda_config_load(cfgpath,&c))return 1;FILE*f=fopen(file,"r");if(!f)return 1;char name[64],word[80];if(fscanf(f,"parameter_set=%63s\nq=%79s\n",name,word)!=2){fclose(f);return 1;}sda_u128 q;if(sda_parse_u128(word,&q)){fclose(f);return 1;}char tag[16];if(fscanf(f,"%15[^=]=",tag)!=1||strcmp(tag,"p")){fclose(f);return 1;}size_t n=(size_t)(c.support_max-c.support_min+1);sda_u128 p[32],cum[32],built=0;for(size_t i=0;i<n;i++)if(fscanf(f,"%79s",word)!=1||sda_parse_u128(word,&p[i])){fclose(f);return 1;}fclose(f);if(!q||c.precision_k<=0||c.precision_k>=128||q>=((sda_u128)1<<c.precision_k)||sda_build_cumulative(p,n,cum,&built)||built!=q)return 1;int zero=0;for(size_t i=0;i<n;i++){if(!p[i])zero=1;else if(zero)return 1;}printf("%s structural verification: PASS (candidate file)\n",name);return 0;
+}
+
 int main(int argc, char **argv) {
     if(argc==3&&!strcmp(argv[1],"--generated"))return verify_generated_dir(argv[2]);
+    if(argc==5&&!strcmp(argv[1],"--candidate")&&!strcmp(argv[3],"--config"))return verify_candidate_file(argv[2],argv[4]);
     int all = argc == 2 && !strcmp(argv[1], "--all");
     if (argc != 1 && !all) { fprintf(stderr, "usage: verify_sdat [--all]\n"); return 2; }
     if (all && sda_generated_tables_count == 0) {
