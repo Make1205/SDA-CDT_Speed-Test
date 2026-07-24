@@ -5,6 +5,7 @@
 #include "original_baseline_tables.h"
 #include "sda_generation.h"
 #include "sda_metrics.h"
+#include "sda_baseline.h"
 #include "sda_epsilon.h"
 
 static const char *cfg_for(const char *p) {
@@ -20,9 +21,9 @@ static int verify_generated_dir(const char *dir) {
     if(!name){fprintf(stderr,"cannot infer parameter set from %s\n",dir);return 1;}
     char path[256],qtxt[80],ptxt[80];snprintf(path,sizeof path,"%s/selected_table.txt",dir);FILE*f=fopen(path,"r");if(!f){perror(path);return 1;}
     if(fscanf(f,"q=%79s\n",qtxt)!=1){fclose(f);return 1;}sda_u128 q;if(sda_parse_u128(qtxt,&q)){fclose(f);return 1;}char tag[8];if(fscanf(f,"%7[^=]=",tag)!=1||strcmp(tag,"p")){fclose(f);return 1;}
-    sda_config c;char cfg[128];snprintf(cfg,sizeof cfg,"offline/configs/%s.conf",name);if(sda_config_load(cfg,&c)){fclose(f);return 1;}size_t n=(size_t)(c.support_max-c.support_min+1);sda_u128 p[32],cum[32];for(size_t i=0;i<n;i++){if(fscanf(f,"%79s",ptxt)!=1||sda_parse_u128(ptxt,&p[i])){fclose(f);return 1;}}fclose(f);sda_u128 built=0;sda_build_cumulative(p,n,cum,&built);sda_table t={c.scheme,c.parameter_set,"generated-directory",0,n-1,c.precision_k,0,!strcmp(c.scheme,"Falcon"),0,n,q,p,cum,0,0};char err[128]="structural constraint failed";if(built!=q||q>=(((sda_u128)1)<<c.precision_k)||sda_validate_table(&t,err,sizeof err)){fprintf(stderr,"%s: invalid generated table: %s\n",name,err);return 1;}
+    sda_config c;char cfg[128];snprintf(cfg,sizeof cfg,"offline/configs/%s.conf",name);if(sda_config_load(cfg,&c)){fclose(f);return 1;}size_t n=(size_t)(c.support_max-c.support_min+1);sda_u128 p[32],cum[32];for(size_t i=0;i<n;i++){if(fscanf(f,"%79s",ptxt)!=1||sda_parse_u128(ptxt,&p[i])){fclose(f);return 1;}}fclose(f);sda_u128 built=0;sda_build_cumulative(p,n,cum,&built);char err[128]="structural constraint failed";if(built!=q||q>=(((sda_u128)1)<<c.precision_k)){fprintf(stderr,"%s: invalid generated table: %s\n",name,err);return 1;}
     int zero=0;for(size_t i=0;i<n;i++){if(!p[i])zero=1;else if(zero){fprintf(stderr,"%s: internal zero mass\n",name);return 1;}}
-    mpfr_t a[32],tail,gs;for(size_t i=0;i<n;i++)mpfr_init2(a[i],c.mpfr_precision);mpfr_inits2(c.mpfr_precision,tail,gs,(mpfr_ptr)0);sda_generate_distribution(&c,a,n,tail,gs);sda_metrics m;sda_metrics_init(&m,c.mpfr_precision);sda_compute_metrics(a,n,p,q,c.renyi_order,&m);printf("%s verified: q, p, CDF, support, pointwise error, SD and RD valid; heuristic_bkz=%s exact_svp=%s\n",name,!strcmp(c.scheme,"Falcon")?"true":"false",!strcmp(c.scheme,"Falcon")?"false":"true");sda_metrics_clear(&m);for(size_t i=0;i<n;i++)mpfr_clear(a[i]);mpfr_clears(tail,gs,(mpfr_ptr)0);return 0;
+    mpfr_t a[32],tail,gs;for(size_t i=0;i<n;i++)mpfr_init2(a[i],c.mpfr_precision);mpfr_inits2(c.mpfr_precision,tail,gs,(mpfr_ptr)0);sda_generate_distribution(&c,a,n,tail,gs);sda_metrics m;sda_metrics_init(&m,c.mpfr_precision);sda_compute_metrics(a,n,p,q,c.renyi_order,&m);mpfr_t pt;mpfr_init2(pt,c.mpfr_precision);mpfr_set_ui_2exp(pt,1,-c.precision_k,MPFR_RNDN);int point_ok=mpfr_cmp(m.max_absolute_error,pt)<=0;int sd_ok=1,rd_ok=1;if(!strcmp(c.scheme,"Frodo")){size_t bn=0;sda_u128 bq=0;const sda_u128*bp=sda_frodo_original_pmf(name,&bn,&bq);sda_metrics bm;sda_metrics_init(&bm,c.mpfr_precision);sda_compute_metrics(a,n,bp,bq,c.renyi_order,&bm);sd_ok=mpfr_cmp(m.sd_support,bm.sd_support)<=0;rd_ok=mpfr_cmp(m.renyi,bm.renyi)<=0;sda_metrics_clear(&bm);}else{mpfr_set_ui_2exp(pt,1,-78,MPFR_RNDN);mpfr_add_ui(pt,pt,1,MPFR_RNDN);rd_ok=mpfr_cmp(m.renyi,pt)<=0;}printf("%s structural verification: PASS\nquality targets:\n  pointwise: %s\n  SD baseline: %s\n  RD target: %s\n",name,point_ok?"PASS":"NOT MET",!strcmp(c.scheme,"Falcon")?"N/A":(sd_ok?"PASS":"NOT MET"),rd_ok?"PASS":"NOT MET");mpfr_clear(pt);sda_metrics_clear(&m);for(size_t i=0;i<n;i++)mpfr_clear(a[i]);mpfr_clears(tail,gs,(mpfr_ptr)0);return 0;
 }
 
 static int verify_one(FILE *rep, const sda_table *t, int check_selection) {

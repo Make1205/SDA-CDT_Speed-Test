@@ -17,7 +17,7 @@ typedef struct {
   char solver[80];
 } sda_generation_result;
 enum { SDA_REJECT_SOLVER=1u<<0,SDA_REJECT_Q_ZERO=1u<<1,SDA_REJECT_Q_LARGE=1u<<2,SDA_REJECT_NEGATIVE=1u<<3,SDA_REJECT_SUM=1u<<4,SDA_REJECT_CUMULATIVE=1u<<5,SDA_REJECT_SUPPORT=1u<<6,SDA_REJECT_ZERO_HOLE=1u<<7,SDA_REJECT_POINTWISE=1u<<8,SDA_REJECT_SD=1u<<9,SDA_REJECT_RD=1u<<10 };
-typedef struct { sda_u128 q,p[32],sum,terminal; size_t n; int solver_rc,solver_completed,q_bits; unsigned reject_flags; mpfr_t max_pointwise,pointwise_limit,sd,sd_baseline,rd,rd_baseline; } sda_candidate_diagnostic;
+typedef struct { sda_u128 q,p[32],sum,terminal; size_t n; int solver_rc,solver_completed,q_bits; unsigned reject_flags,quality_flags; mpfr_t max_pointwise,pointwise_limit,sd,sd_baseline,rd,rd_baseline; } sda_candidate_diagnostic;
 void sda_candidate_diagnostic_init(sda_candidate_diagnostic*,mpfr_prec_t);
 void sda_candidate_diagnostic_clear(sda_candidate_diagnostic*);
 int sda_diagnose_frodo_epsilon(const sda_config*,mpfr_t,sda_candidate_diagnostic*);
