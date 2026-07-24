@@ -16,7 +16,7 @@ upper-inclusive thresholds and therefore compare `x > threshold`.  Generic,
 specialized, and AVX2 SDA paths all compare their stored cumulative values with
 `>=`.
 
-Falcon has no C production generator in this repository.  Its current online
-SDA table is a frozen experimental benchmark table.  The legacy Python/BKZ
-research artifacts are not a production generator and must not be used to
-round, normalize, or automatically replace Falcon's frozen `p` or `q`.
+Falcon has no C production generator in this repository. Its current online
+SDA table is a frozen experimental benchmark table and must not be rounded,
+normalized, or automatically replaced. A later phase will implement its
+offline generation path in C.

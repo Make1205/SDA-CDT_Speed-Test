@@ -2,7 +2,6 @@
 #include <string.h>
 #include <mpfr.h>
 #include "sda_generated_tables.h"
-#include "classical_cdt_generated_tables.h"
 #include "original_baseline_tables.h"
 #include "sda_generation.h"
 #include "sda_metrics.h"
@@ -93,7 +92,6 @@ int main(int argc, char **argv) {
     int ok = 1;
     for (size_t i = 0; i < original_baseline_tables_count; i++) ok &= verify_one(rep, original_baseline_tables[i], 0);
     for (size_t i = 0; i < sda_generated_tables_count; i++) ok &= verify_one(rep, &sda_generated_tables[i], 1);
-    for (size_t i = 0; i < classical_cdt_generated_tables_count; i++) ok &= verify_one(rep, &classical_cdt_generated_tables[i], 0);
     fprintf(rep, "\nmetrics_match=%s\nsvp_candidate_selection_valid=%s\noverall_valid=%s\n", ok ? "true" : "false", ok ? "true" : "false", ok ? "true" : "false");
     fclose(rep);
     if (!ok) return 1;

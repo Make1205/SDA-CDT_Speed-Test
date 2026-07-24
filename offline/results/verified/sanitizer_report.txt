@@ -1,5 +1,0 @@
-asan_ubsan_combined=pass
-configure_command=cmake -S . -B build-asan -DSDA_ENABLE_SANITIZERS=ON -DSDA_BUILD_BENCHMARKS=ON
-build_command=cmake --build build-asan --target test_sdat_online -j2
-test_command=ctest --test-dir build-asan -R test_sdat_online --output-on-failure
-valgrind=not_available
