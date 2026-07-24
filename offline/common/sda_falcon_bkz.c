@@ -1,13 +1,15 @@
-#include "sda_falcon_bkz.h"
 #include <stdio.h>
+#include "sda_falcon_bkz.h"
+#include <gmp.h>
 #include <string.h>
-
-int sda_falcon_bkz_available(char *version, size_t version_size) {
-    FILE *pipe = popen("fplll --version 2>/dev/null", "r");
-    if (!pipe) return 0;
-    int ok = fgets(version, (int)version_size, pipe) != NULL;
-    int status = pclose(pipe);
-    if (!ok || status != 0) { if (version_size) version[0] = 0; return 0; }
-    version[strcspn(version, "\r\n")] = 0;
-    return 1;
-}
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+static sda_u128 get128(const mpz_t z){unsigned char b[16]={0};size_t n=0;mpz_export(b,&n,-1,1,0,0,z);sda_u128 x=0;for(size_t i=0;i<n&&i<16;i++)x|=(sda_u128)b[i]<<(8*i);return x;}
+int sda_falcon_bkz_available(char*v,size_t n){FILE*p=popen("fplll --version 2>/dev/null","r");if(!p)return 0;int ok=fgets(v,(int)n,p)!=0;int st=pclose(p);if(!ok||st){if(n)v[0]=0;return 0;}v[strcspn(v,"\r\n")]=0;return 1;}
+int sda_falcon_basis_write(FILE*f,mpfr_t*a,mpfr_t eps,mpfr_prec_t pr,mpz_t D,mpz_t A[19]){mpfr_t x;mpfr_init2(x,pr);mpfr_ui_div(x,1,eps,MPFR_RNDN);mpfr_pow_ui(x,x,20,MPFR_RNDN);mpfr_get_z(D,x,MPFR_RNDN);if(mpz_sgn(D)<=0)mpz_set_ui(D,1);for(int i=0;i<19;i++){mpfr_mul_z(x,a[i],D,MPFR_RNDN);mpfr_neg(x,x,MPFR_RNDN);mpfr_get_z(A[i],x,MPFR_RNDN);}fputs("[\n",f);for(int i=0;i<19;i++){fputc('[',f);for(int j=0;j<20;j++){if(j)fputc(' ',f);if(i==j)mpz_out_str(f,10,D);else fputc('0',f);}fputs("]\n",f);}fputc('[',f);for(int i=0;i<19;i++){if(i)fputc(' ',f);mpz_out_str(f,10,A[i]);}fputs(" 1]\n]\n",f);mpfr_clear(x);return ferror(f)?-1:0;}
+int sda_falcon_recover(const mpz_t*row,const mpz_t D,const mpz_t A[19],sda_falcon_bkz_result*r){mpz_t q,num,rem;mpz_inits(q,num,rem,NULL);mpz_set(q,row[19]);int sign=mpz_sgn(q)<0?-1:1;if(sign<0)mpz_neg(q,q);if(mpz_sgn(q)<=0||mpz_sizeinbase(q,2)>128){mpz_clears(q,num,rem,NULL);return-1;}r->q=get128(q);for(int i=0;i<19;i++){mpz_mul(num,row[19],A[i]);mpz_sub(num,row[i],num);mpz_tdiv_qr(num,rem,num,D);if(mpz_sgn(rem)){mpz_clears(q,num,rem,NULL);return-2;}if(sign<0)mpz_neg(num,num);if(mpz_sgn(num)<0||mpz_sizeinbase(num,2)>128){mpz_clears(q,num,rem,NULL);return-3;}r->p[i]=get128(num);}mpz_clears(q,num,rem,NULL);return 0;}
+static int parse(FILE*f,mpz_t row[20]){char ch;while(fscanf(f," %c",&ch)==1){if(ch=='['){int c=fgetc(f);if(c=='\n'||c=='['){if(c=='[')ungetc(c,f);continue;}ungetc(c,f);for(int i=0;i<20;i++)if(mpz_inp_str(row[i],f,10)==0)return-1;return 0;}}return-1;}
+int sda_falcon_bkz_solve(mpfr_t*a,mpfr_t eps,mpfr_prec_t pr,uint64_t seed,sda_falcon_bkz_result*r){(void)seed;memset(r,0,sizeof*r);r->heuristic_bkz=1;r->exact_svp=0;if(!sda_falcon_bkz_available(r->version,sizeof r->version))return-10;char dir[128],in[160],out[160],err[160];snprintf(dir,sizeof dir,"build/falcon-bkz-temp/%ld",(long)getpid());mkdir("build",0777);mkdir("build/falcon-bkz-temp",0777);mkdir(dir,0777);snprintf(in,sizeof in,"%s/input.basis",dir);snprintf(out,sizeof out,"%s/output.basis",dir);snprintf(err,sizeof err,"%s/stderr.log",dir);FILE*f=fopen(in,"w");mpz_t D,A[19];mpz_init(D);for(int i=0;i<19;i++)mpz_init(A[i]);if(!f||sda_falcon_basis_write(f,a,eps,pr,D,A)){if(f)fclose(f);return-11;}fclose(f);snprintf(r->command,sizeof r->command,"fplll -a bkz -b 20 -bkzmaxloops 2 -f mpfr -p %lu %s",(unsigned long)pr,in);pid_t pid=fork();if(pid==0){int fo=open(out,O_CREAT|O_TRUNC|O_WRONLY,0600),fe=open(err,O_CREAT|O_TRUNC|O_WRONLY,0600);dup2(fo,1);dup2(fe,2);execlp("fplll","fplll","-a","bkz","-b","20","-bkzmaxloops","2","-f","mpfr","-p","256",in,(char*)0);_exit(127);}int st;waitpid(pid,&st,0);if(!WIFEXITED(st)||WEXITSTATUS(st)){r->solver_status=WIFEXITED(st)?WEXITSTATUS(st):-1;return-12;}f=fopen(out,"r");mpz_t row[20];for(int i=0;i<20;i++)mpz_init(row[i]);int rc=parse(f,row);if(f)fclose(f);if(!rc)rc=sda_falcon_recover((const mpz_t*)row,D,(const mpz_t*)A,r);for(int i=0;i<20;i++)mpz_clear(row[i]);for(int i=0;i<19;i++)mpz_clear(A[i]);mpz_clear(D);unlink(in);unlink(out);unlink(err);rmdir(dir);return rc;}
