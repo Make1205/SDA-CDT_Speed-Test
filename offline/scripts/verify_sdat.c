@@ -7,6 +7,8 @@
 #include "sda_metrics.h"
 #include "sda_baseline.h"
 #include "sda_epsilon.h"
+#include <ctype.h>
+#include <dirent.h>
 
 static const char *cfg_for(const char *p) {
     if (!strcmp(p, "frodo640")) return "offline/configs/frodo640.conf";
@@ -90,13 +92,18 @@ static int verify_one(FILE *rep, const sda_table *t, int check_selection) {
     return selection_ok && type_ok && baseline_ok;
 }
 
-static int verify_candidate_file(const char *file,const char *cfgpath) {
-    sda_config c;if(sda_config_load(cfgpath,&c))return 1;FILE*f=fopen(file,"r");if(!f)return 1;char name[64],word[80];if(fscanf(f,"parameter_set=%63s\nq=%79s\n",name,word)!=2){fclose(f);return 1;}sda_u128 q;if(sda_parse_u128(word,&q)){fclose(f);return 1;}char tag[16];if(fscanf(f,"%15[^=]=",tag)!=1||strcmp(tag,"p")){fclose(f);return 1;}size_t n=(size_t)(c.support_max-c.support_min+1);sda_u128 p[32],cum[32],built=0;for(size_t i=0;i<n;i++)if(fscanf(f,"%79s",word)!=1||sda_parse_u128(word,&p[i])){fclose(f);return 1;}fclose(f);if(!q||c.precision_k<=0||c.precision_k>=128||q>=((sda_u128)1<<c.precision_k)||sda_build_cumulative(p,n,cum,&built)||built!=q)return 1;int zero=0;for(size_t i=0;i<n;i++){if(!p[i])zero=1;else if(zero)return 1;}printf("%s structural verification: PASS (candidate file)\n",name);return 0;
+static int verify_candidate_file(const char *file,const char *cfgpath,int verbose) {
+    sda_config c;if(sda_config_load(cfgpath,&c))return 1;FILE*f=fopen(file,"r");if(!f)return 1;char name[64],word[80];if(fscanf(f,"parameter_set=%63s\nq=%79s\n",name,word)!=2){fclose(f);return 1;}sda_u128 q;if(sda_parse_u128(word,&q)){fclose(f);return 1;}char tag[16];if(fscanf(f,"%15[^=]=",tag)!=1||strcmp(tag,"p")){fclose(f);return 1;}size_t n=(size_t)(c.support_max-c.support_min+1);sda_u128 p[32],cum[32],built=0;for(size_t i=0;i<n;i++)if(fscanf(f,"%79s",word)!=1||sda_parse_u128(word,&p[i])){fclose(f);return 1;}sda_u128 stored[32];if(fscanf(f," %15[^=]=",tag)!=1||strcmp(tag,"cumulative")){fclose(f);return 1;}for(size_t i=0;i<n;i++)if(fscanf(f,"%79s",word)!=1||sda_parse_u128(word,&stored[i])){fclose(f);return 1;}fclose(f);if(!q||c.precision_k<=0||c.precision_k>=128||q>=((sda_u128)1<<c.precision_k)||sda_build_cumulative(p,n,cum,&built)||built!=q||memcmp(cum,stored,n*sizeof *cum))return 1;int zero=0;for(size_t i=0;i<n;i++){if(!p[i])zero=1;else if(zero)return 1;}if(verbose)printf("%s structural verification: PASS (candidate file)\n",name);return 0;
+}
+
+static int verify_search_dir(const char *dir) {
+    const char *name=strstr(dir,"frodo640")?"frodo640":strstr(dir,"frodo976")?"frodo976":strstr(dir,"frodo1344")?"frodo1344":strstr(dir,"falcon")?"falcon":0;if(!name)return 1;char cfg[160],path[320],line[512];snprintf(cfg,sizeof cfg,"offline/configs/%s.conf",name);DIR*d=opendir(dir);if(!d)return 1;size_t files=0;struct dirent*e;while((e=readdir(d)))if(!strncmp(e->d_name,"candidate_",10)&&strstr(e->d_name,".txt")){snprintf(path,sizeof path,"%s/%s",dir,e->d_name);if(verify_candidate_file(path,cfg,0)){closedir(d);return 1;}files++;}closedir(d);snprintf(path,sizeof path,"%s/search_summary.txt",dir);FILE*f=fopen(path,"r");if(!f)return 1;size_t expected=0;while(fgets(line,sizeof line,f))if(sscanf(line,"unique_candidate_count=%zu",&expected)==1)break;fclose(f);if(!expected||expected!=files)return 1;snprintf(path,sizeof path,"%s/basis_hashes.csv",dir);f=fopen(path,"r");if(!f)return 1;if(!fgets(line,sizeof line,f)){fclose(f);return 1;}size_t hashes=0;while(fgets(line,sizeof line,f)){size_t n=strcspn(line,"\r\n");if(n!=16)return 1;for(size_t i=0;i<n;i++)if(!isxdigit((unsigned char)line[i]))return 1;hashes++;}fclose(f);if(!hashes)return 1;printf("%s expanded search verification: PASS (%zu candidates, %zu basis hashes)\n",name,files,hashes);return 0;
 }
 
 int main(int argc, char **argv) {
     if(argc==3&&!strcmp(argv[1],"--generated"))return verify_generated_dir(argv[2]);
-    if(argc==5&&!strcmp(argv[1],"--candidate")&&!strcmp(argv[3],"--config"))return verify_candidate_file(argv[2],argv[4]);
+    if(argc==5&&!strcmp(argv[1],"--candidate")&&!strcmp(argv[3],"--config"))return verify_candidate_file(argv[2],argv[4],1);
+    if(argc==3&&!strcmp(argv[1],"--search-dir"))return verify_search_dir(argv[2]);
     int all = argc == 2 && !strcmp(argv[1], "--all");
     if (argc != 1 && !all) { fprintf(stderr, "usage: verify_sdat [--all]\n"); return 2; }
     if (all && sda_generated_tables_count == 0) {

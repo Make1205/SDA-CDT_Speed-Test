@@ -21,3 +21,9 @@ SplitMix64 stream derived independently for each parameter set:
 
 Falcon requests the `bkz20` backend and fail explicitly when the external
 `fplll` executable is unavailable; there is no rounding fallback.
+
+## Expanded epsilon search
+
+`generate_sdat --config CONFIG --expanded-search --epsilon-search logarithmic-grid --compare-frozen` runs the three MPFR-derived ranges `[L,U]`, `[L/2,min(2U,0.95)]`, and `[L/4,min(4U,0.95)]`. Frodo uses 256/512/1024 points and Falcon uses 16/32/64 BKZ-20 points. `--stop-on-frozen-match` stops only after an exact `q`, PMF, and cumulative-table match. A single custom range uses `--epsilon-min`, `--epsilon-max`, `--epsilon-points`, and `--epsilon-search` (`logarithmic-grid`, `linear-grid`, or `random`).
+
+Expanded-search artifacts are ignored files under `offline/generated/<parameter>/expanded-search/`. They record whether each first epsilon lies in the paper interval, exact candidate plateaus, canonical integer-basis hashes, independent quality rankings, and probability-distance rankings against the frozen online table. Quality metrics remain reporting-only and the solver PMF is never rounded or normalized. Validate an artifact set with `verify_sdat --search-dir DIR`.

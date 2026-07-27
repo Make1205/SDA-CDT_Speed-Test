@@ -8,6 +8,8 @@
 #include "sda_lll.h"
 #include "sda_baseline.h"
 #include "sda_random_driver.h"
+#include "sda_expanded_search.h"
+#include "sdat_tables.h"
 #include <stdint.h>
 static void print_mp(FILE*f,mpfr_t x){ mpfr_out_str(f,10,18,x,MPFR_RNDN); }
 static void u(FILE*f,sda_u128 v){ char b[64]; sda_print_u128(v,b,sizeof b); fputs(b,f); }
@@ -18,6 +20,8 @@ static size_t cbytes_for_q(sda_u128 q){ const char*t=ctype_for_q(q); return !str
 static void val(FILE*f,const char*type,sda_u128 v){ if(!strcmp(type,"sda_u128")) uexpr(f,v); else u(f,v); }
 static void arr(FILE*f,const char*type,const char*name,const sda_u128*a,size_t n){ fprintf(f,"static const %s %s[]= {",type,name); for(size_t i=0;i<n;i++){ if(i)fputc(',',f); val(f,type,a[i]); } fprintf(f,"};\n"); }
 static unsigned long hcfg(const sda_config*c){ unsigned long h=1469598103u; const unsigned char*p=(const unsigned char*)c; for(size_t i=0;i<sizeof*c;i++) h=(h^p[i])*16777619u; return h; }
+static sda_u128 from72(sdat_u72 x){return ((sda_u128)x.hi<<64)|x.lo;}
+static int frozen_reference(const char*cfg,sda_frozen_reference*r){const char*name=strstr(cfg,"1344")?"frodo1344":strstr(cfg,"976")?"frodo976":strstr(cfg,"640")?"frodo640":"falcon";const sdat_table*t=online_get_table("sda-table",name);if(!t||t->support_min!=0)return-1;memset(r,0,sizeof*r);r->n=(size_t)(!strcmp(name,"falcon")?19:!strcmp(name,"frodo640")?13:!strcmp(name,"frodo976")?11:7);r->q=t->value_type==SDAT_TYPE_U72?from72(t->denominator_u72):(sda_u128)t->denominator_u64;for(size_t i=0;i<t->mass_count;i++)r->p[i]=t->value_type==SDAT_TYPE_U72?from72(((const sdat_u72*)t->pmf)[i]):t->value_type==SDAT_TYPE_U16?((const uint16_t*)t->pmf)[i]:((const uint8_t*)t->pmf)[i];sda_u128 q=0;return sda_build_cumulative(r->p,r->n,r->c,&q)||q!=r->q?-1:0;}
 static int one(const char*path,const char*solver,const char*epsilon,sda_generation_result*r){ sda_config c; if(sda_config_load(path,&c)){perror(path);return 1;} if(!*c.parameter_set){ const char*s=strrchr(path,'/'); snprintf(c.parameter_set,sizeof c.parameter_set,"%s",s?s+1:path); char*d=strchr(c.parameter_set,'.'); if(d)*d=0; } sda_generation_result_init(r,c.mpfr_precision); int rc;
  if(epsilon){ mpfr_t e; mpfr_init2(e,c.mpfr_precision); if(mpfr_set_str(e,epsilon,10,MPFR_RNDN)||mpfr_sgn(e)<=0){fprintf(stderr,"invalid epsilon: %s\n",epsilon);mpfr_clear(e);sda_generation_result_clear(r);return 1;} rc=sda_generate_for_epsilon(&c,e,r); mpfr_clear(e); }
  else rc=sda_generate_for_config(&c,solver,r);
@@ -26,7 +30,7 @@ static int write_outputs(sda_generation_result*r,const char**names,size_t m,int 
  fprintf(h,"static const sda_table sda_generated_tables[]={\n"); for(size_t i=0;i<m;i++){ size_t cbytes=cbytes_for_q(r[i].q); fprintf(h,"{\"%s\",\"%s\",\"%s\",0,%zu,%d,%d,%d,0,%zu,", strstr(names[i],"falcon")?"Falcon":"Frodo",names[i],r[i].solver,r[i].n-1,r[i].q_bits,(r[i].final_q_from_exact_svp?r[i].exact_linf_svp:0),r[i].heuristic,r[i].n); uexpr(h,r[i].q); fprintf(h,",sda_%s_p,sda_%s_c,%zu,%zu}%s\n",names[i],names[i],r[i].n*cbytes,r[i].n*(size_t)r[i].threshold_bits,i+1<m?",":""); } fprintf(h,"};\nstatic const size_t sda_generated_tables_count=%zu;\n#endif\n",m); fprintf(baseh,"static const sda_table *original_baseline_tables[]={\n  \&orig_frodo640_table,\n  \&orig_frodo976_table,\n  \&orig_frodo1344_table\n};\nstatic const size_t original_baseline_tables_count=3;\n#endif\n"); fclose(baseh); fclose(app); fclose(pareto); fclose(bmet); fclose(asel); fclose(h); fclose(csv); fclose(met); fclose(rep); fclose(cand); return 0; }
 int main(int argc,char**argv){
  setenv("SDA_TRACE_CANDIDATES","1",1); remove("offline/generated/sda_all_candidates.csv"); remove("offline/generated/sda_feasible_candidates.csv"); remove("offline/generated/sda_rejected_candidates.csv");
- int all=0,all_available=0,repro=0,random_epsilon=0,diagnose=0; const char*cfg=0,*solver=0,*epsilon=0,*diagnostic_output=0; uint64_t seed=1; unsigned max_trials=256,top_count=5;
+ int all=0,all_available=0,repro=0,random_epsilon=0,diagnose=0,expanded=0,stop_match=0,compare_frozen=0; const char*cfg=0,*solver=0,*epsilon=0,*diagnostic_output=0,*epsilon_min=0,*epsilon_max=0,*epsilon_search=0; uint64_t seed=1; unsigned max_trials=256,top_count=5,epsilon_points=0;
  for(int i=1;i<argc;i++){
   if(!strcmp(argv[i],"--all"))all=1;
   else if(!strcmp(argv[i],"--all-available")){all=1;all_available=1;}
@@ -35,6 +39,13 @@ int main(int argc,char**argv){
   else if(!strcmp(argv[i],"--solver")&&i+1<argc)solver=argv[++i];
   else if(!strcmp(argv[i],"--epsilon")&&i+1<argc)epsilon=argv[++i];
   else if(!strcmp(argv[i],"--random-epsilon"))random_epsilon=1;
+  else if(!strcmp(argv[i],"--expanded-search"))expanded=1;
+  else if(!strcmp(argv[i],"--compare-frozen"))compare_frozen=1;
+  else if(!strcmp(argv[i],"--stop-on-frozen-match"))stop_match=1;
+  else if(!strcmp(argv[i],"--epsilon-min")&&i+1<argc)epsilon_min=argv[++i];
+  else if(!strcmp(argv[i],"--epsilon-max")&&i+1<argc)epsilon_max=argv[++i];
+  else if(!strcmp(argv[i],"--epsilon-search")&&i+1<argc)epsilon_search=argv[++i];
+  else if(!strcmp(argv[i],"--epsilon-points")&&i+1<argc){unsigned long v=strtoul(argv[++i],0,10);if(!v||v>1000000UL)return 2;epsilon_points=(unsigned)v;}
   else if(!strcmp(argv[i],"--diagnose"))diagnose=1;
   else if(!strcmp(argv[i],"--diagnostic-output")&&i+1<argc)diagnostic_output=argv[++i];
   else if(!strcmp(argv[i],"--seed")&&i+1<argc)seed=strtoull(argv[++i],0,0);
@@ -46,6 +57,7 @@ int main(int argc,char**argv){
  const char*paths[4]={"offline/configs/frodo640.conf","offline/configs/frodo976.conf","offline/configs/frodo1344.conf","offline/configs/falcon.conf"};
  const char*solv[4]={"exact-linf-svp","exact-linf-svp","exact-linf-svp","exact-linf-svp"};
  size_t m=0; int failures=0;
+ if(expanded||epsilon_points){if(!cfg){fprintf(stderr,"epsilon grid search requires --config\n");return 2;}sda_epsilon_search_mode mode=SDA_EPS_LOG_GRID;if(epsilon_search&&!strcmp(epsilon_search,"linear-grid"))mode=SDA_EPS_LINEAR_GRID;else if(epsilon_search&&!strcmp(epsilon_search,"random"))mode=SDA_EPS_RANDOM_GRID;else if(epsilon_search&&strcmp(epsilon_search,"logarithmic-grid")){fprintf(stderr,"invalid --epsilon-search\n");return 2;}sda_frozen_reference fr;if(frozen_reference(cfg,&fr)){fprintf(stderr,"online frozen table unavailable\n");return 2;}sda_expanded_options op={expanded,stop_match,epsilon_points,top_count,seed,mode,epsilon_min,epsilon_max};(void)compare_frozen;return sda_expanded_search(cfg,&op,&fr);}
  if(random_epsilon){
   if(epsilon){fprintf(stderr,"--epsilon and --random-epsilon are mutually exclusive\n");return 2;}
   if(all){if(diagnostic_output){fprintf(stderr,"--diagnostic-output with --all is ambiguous; run each config separately\n");return 2;}for(size_t i=0;i<4;i++)if(sda_random_generate_config(paths[i],seed,max_trials,top_count,0))failures++;return failures?2:0;}
