@@ -27,3 +27,4 @@ int frodo976_sda_word_no_stats(uint16_t *out, size_t n,
     }
     return dst == dst_end ? 0 : -2;
 }
+int frodo976_sda_word_accept_before_map(uint16_t *out,size_t n,const uint16_t*w,size_t wc){size_t a=0,p=0;while(a<n&&p<wc){uint16_t z=w[p++],c=(uint16_t)(z&0x1fffu);if(c<7442u)out[a++]=sign976(ge976(c),(uint8_t)((z>>13)&1u));}return a==n?0:-2;}

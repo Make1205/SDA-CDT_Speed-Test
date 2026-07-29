@@ -12,4 +12,7 @@ int frodo_sda_sample_n_fast(uint16_t *out,size_t n,sdat_bitreader_fast *r,const 
 int frodo_sda_sample_n_fast_avx2(uint16_t *out,size_t n,sdat_bitreader_fast *r,const sdat_table *t,sdat_stats *st);
 int frodo_sda_word_sample_n(uint16_t *out,size_t n,const uint16_t *words,size_t word_count,const sdat_table *t,sdat_stats *st);
 int frodo_sda_word_sample_n_avx2(uint16_t *out,size_t n,const uint16_t *words,size_t word_count,const sdat_table *t,sdat_stats *st);
+int frodo_sda_word_sample_n_accept_before_map(uint16_t *out,size_t n,const uint16_t *words,size_t word_count,const sdat_table *t);
+size_t frodo_original_materialize_words(uint16_t *candidates,uint8_t *signs,size_t n,const uint16_t *words,size_t word_count);
+size_t frodo_sda_materialize_words(uint16_t *candidates,uint8_t *signs,size_t n,const uint16_t *words,size_t word_count,const sdat_table *t);
 #endif

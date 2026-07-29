@@ -4,6 +4,9 @@
 int frodo640_sda_word_no_stats(uint16_t *out,size_t n,const uint16_t *w,size_t wc);
 int frodo976_sda_word_no_stats(uint16_t *out,size_t n,const uint16_t *w,size_t wc);
 int frodo1344_sda_word_no_stats_branchless(uint16_t *out,size_t n,const uint16_t *w,size_t wc);
+int frodo640_sda_word_accept_before_map(uint16_t*,size_t,const uint16_t*,size_t);
+int frodo976_sda_word_accept_before_map(uint16_t*,size_t,const uint16_t*,size_t);
+int frodo1344_sda_word_accept_before_map(uint16_t*,size_t,const uint16_t*,size_t);
 static inline uint16_t sign_sda(uint16_t mag,uint8_t sign){return (uint16_t)(((uint16_t)(-(uint16_t)(sign&1u)) ^ mag) + (sign&1u));}
 static inline uint16_t ge640_sda(uint16_t x){const uint16_t*t=sda_table_frodo640.thresholds;return (uint16_t)((x>=t[0])+(x>=t[1])+(x>=t[2])+(x>=t[3])+(x>=t[4])+(x>=t[5])+(x>=t[6])+(x>=t[7])+(x>=t[8])+(x>=t[9])+(x>=t[10]));}
 static inline uint16_t ge976_sda(uint16_t x){const uint16_t*t=sda_table_frodo976.thresholds;return (uint16_t)((x>=t[0])+(x>=t[1])+(x>=t[2])+(x>=t[3])+(x>=t[4])+(x>=t[5])+(x>=t[6])+(x>=t[7])+(x>=t[8]));}
@@ -32,3 +35,10 @@ static int word976(uint16_t*out,size_t n,const uint16_t*w,size_t wc,sdat_stats*s
 static int word1344(uint16_t*out,size_t n,const uint16_t*w,size_t wc,sdat_stats*st){return st?word1344_with_stats(out,n,w,wc,st):frodo1344_sda_word_no_stats_branchless(out,n,w,wc);}
 int frodo_sda_word_sample_n(uint16_t*out,size_t n,const uint16_t*w,size_t wc,const sdat_table*t,sdat_stats*st){if(t==&sda_table_frodo640)return word640(out,n,w,wc,st);if(t==&sda_table_frodo976)return word976(out,n,w,wc,st);if(t==&sda_table_frodo1344)return word1344(out,n,w,wc,st);return -1;}
 int frodo_sda_word_sample_n_avx2(uint16_t*out,size_t n,const uint16_t*w,size_t wc,const sdat_table*t,sdat_stats*st){return frodo_sda_word_sample_n(out,n,w,wc,t,st);} 
+size_t frodo_original_materialize_words(uint16_t*c,uint8_t*s,size_t n,const uint16_t*w,size_t wc){if(!c||!s||!w||wc<n)return 0;for(size_t i=0;i<n;i++){uint16_t z=w[i];c[i]=(uint16_t)(z>>1);s[i]=(uint8_t)(z&1u);}return n;}
+#define MATERIALIZE(NAME,TYPE,MASK,SHIFT,Q) static size_t NAME(uint16_t*c,uint8_t*s,size_t n,const uint16_t*w,size_t wc){size_t a=0,p=0;while(a<n&&p<wc){uint16_t z=w[p++];TYPE x=(TYPE)(z&MASK);if(x<Q){c[a]=(uint16_t)x;s[a]=(uint8_t)((z>>SHIFT)&1u);a++;}}return a==n?p:0;}
+MATERIALIZE(materialize640,uint16_t,0x3fffu,14,14534u)
+MATERIALIZE(materialize976,uint16_t,0x1fffu,13,7442u)
+MATERIALIZE(materialize1344,uint8_t,0x7fu,7,102u)
+size_t frodo_sda_materialize_words(uint16_t*c,uint8_t*s,size_t n,const uint16_t*w,size_t wc,const sdat_table*t){if(!c||!s||!w)return 0;if(t==&sda_table_frodo640)return materialize640(c,s,n,w,wc);if(t==&sda_table_frodo976)return materialize976(c,s,n,w,wc);if(t==&sda_table_frodo1344)return materialize1344(c,s,n,w,wc);return 0;}
+int frodo_sda_word_sample_n_accept_before_map(uint16_t*out,size_t n,const uint16_t*w,size_t wc,const sdat_table*t){if(t==&sda_table_frodo640)return frodo640_sda_word_accept_before_map(out,n,w,wc);if(t==&sda_table_frodo976)return frodo976_sda_word_accept_before_map(out,n,w,wc);if(t==&sda_table_frodo1344)return frodo1344_sda_word_accept_before_map(out,n,w,wc);return -1;}

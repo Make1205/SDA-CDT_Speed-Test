@@ -1,6 +1,5 @@
 #include "frodo_sampler.h"
 #include "sdat_avx2.h"
-#include <string.h>
 
 static frodo_sampler_params params[] = {
     {FRODO_PARAM_640,"frodo640",&original_cdt_table_frodo640,&sda_table_frodo640,14534u,14u,14u,0x3fffu,0,13,0,11,12,5120},
@@ -35,8 +34,8 @@ int frodo_sample_n_dispatch(frodo_sampler_kind kind,frodo_backend backend,frodo_
     if(fs)*fs=(frodo_sampler_stats){0};
     if(kind==FRODO_SAMPLER_ORIGINAL_CDT){
         if(frontend!=FRODO_FRONTEND_ORIGINAL_WORD||!word_source||word_count<n)return -2;
-        memcpy(out,word_source,n*sizeof *out);
-        return backend==FRODO_BACKEND_AVX2?frodo_original_sample_n_avx2(out,n,p->original_table):frodo_original_sample_n(out,n,p->original_table);
+        if(backend==FRODO_BACKEND_AVX2 && out==word_source)return frodo_original_sample_n_avx2(out,n,p->original_table);
+        return frodo_original_sample_n_from_words(out,word_source,n,p->original_table);
     }
     if(kind!=FRODO_SAMPLER_SDA_CDT)return -3;
     if(frontend==FRODO_FRONTEND_PACKED_BIT){

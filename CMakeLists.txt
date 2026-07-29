@@ -104,12 +104,12 @@ add_test(NAME falcon_base_sampler COMMAND test_falcon_base_sampler)
 
 if(SDA_BUILD_BENCHMARKS)
 add_executable(benchmark_frodo_sample_n benchmark/frodo/benchmark_frodo_sample_n.c)
-target_include_directories(benchmark_frodo_sample_n PRIVATE online/frodo online/falcon online/common)
+target_include_directories(benchmark_frodo_sample_n PRIVATE benchmark/common online/frodo online/falcon online/common)
 target_link_libraries(benchmark_frodo_sample_n PRIVATE sdat_frodo_sampler)
 target_compile_options(benchmark_frodo_sample_n PRIVATE ${SDA_CFLAGS} -O3)
 
 add_executable(benchmark_frodo_breakdown benchmark/frodo/benchmark_frodo_breakdown.c)
-target_include_directories(benchmark_frodo_breakdown PRIVATE online/frodo online/falcon online/common)
+target_include_directories(benchmark_frodo_breakdown PRIVATE benchmark/common online/frodo online/falcon online/common)
 target_link_libraries(benchmark_frodo_breakdown PRIVATE sdat_frodo_sampler)
 target_compile_options(benchmark_frodo_breakdown PRIVATE ${SDA_CFLAGS} -O3)
 
