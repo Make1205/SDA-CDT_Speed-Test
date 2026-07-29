@@ -1,5 +1,0 @@
-scheme,parameter_set,sampler_kind,backend,frontend,component,mode,implementation,sample_count,process_id,repetition,cycles_total,cycles_per_attempt,cycles_per_output,attempts_per_output,rejections_per_output,accepted_outputs,source_bytes,source_bytes_per_attempt,physical_bytes_per_output,random_precision_bits,checksum,status
-Falcon,base-gaussian0,original-cdt,reference,falcon-prng72,source-frontend,equal-size,benchmark-only-original-source-frontend,8,101,0,16,2,2,1,0,8,72,9,9,72,21,ok
-Falcon,base-gaussian0,sda-cdt,reference,falcon-sda72,source-frontend,equal-size,benchmark-only-sda-source-frontend,8,101,0,40,4,5,1.25,0.25,8,90,9,11.25,72,22,ok
-Falcon,base-gaussian0,original-cdt,reference,mapping-only,cdt-mapping,equal-size,original-reference,8,101,0,56,0,7,1,0,8,72,9,9,72,23,ok
-Falcon,base-gaussian0,sda-cdt,reference,mapping-only,cdt-mapping,equal-size,sda-reference,8,101,0,64,0,8,1,0,8,72,9,9,72,24,ok
