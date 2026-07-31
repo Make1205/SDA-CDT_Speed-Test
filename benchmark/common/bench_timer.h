@@ -4,7 +4,7 @@
 #include <time.h>
 #if defined(__x86_64__) || defined(__i386__)
 #include <x86intrin.h>
-static inline uint64_t bench_timer_start(void){_mm_lfence();__asm__ __volatile__("":::"memory");return __rdtsc();}
+static inline uint64_t bench_timer_start(void){__asm__ __volatile__("":::"memory");_mm_lfence();return __rdtsc();}
 static inline uint64_t bench_timer_stop(void){unsigned aux;uint64_t v=__rdtscp(&aux);_mm_lfence();__asm__ __volatile__("":::"memory");return v;}
 #define BENCH_TIMER_KIND "x86-lfence-rdtsc-rdtscp-lfence"
 #else

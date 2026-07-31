@@ -12,7 +12,7 @@ If GMP and MPFR are installed, offline targets and tests are enabled by the same
 
 ## Benchmarks
 
-The maintained targets are `benchmark_frodo_sample_n`, `benchmark_frodo_breakdown`, `benchmark_falcon_base_sampler`, and `benchmark_falcon_breakdown`. Run their shell wrappers:
+The maintained targets are `benchmark_frodo`, `benchmark_falcon_base_sampler`, and `benchmark_falcon_breakdown`. Run their shell wrappers:
 
 ```sh
 benchmark/scripts/run_frodo_benchmarks.sh

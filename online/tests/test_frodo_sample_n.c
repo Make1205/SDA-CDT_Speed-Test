@@ -2,6 +2,7 @@
 #include "frodo_sample_n_fast.h"
 #include "frodo_sampler.h"
 #include "sdat_avx2.h"
+#include "frodo_benchmark_input.h"
 #include <stdio.h>
 #include <string.h>
 static const sdat_table*tabs_o[3]={&original_cdt_table_frodo640,&original_cdt_table_frodo976,&original_cdt_table_frodo1344};
@@ -58,4 +59,5 @@ static int test_fair_reference_paths(void){
  }
  return 0;
 }
-int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;if((r=test_word_accounting_synthetic()))return r;if((r=test_word_no_stats_equivalence()))return r;if((r=test_dispatch_framework()))return r;if((r=test_fair_reference_paths()))return r;puts("frodo_sample_n tests passed");return 0;}
+static int test_benchmark_input_reproducibility(void){uint16_t a[64],b[64],c[64];uint64_t s=frodo_benchmark_seed(1,2,3,1);if(s!=frodo_benchmark_seed(1,2,3,1)||s==frodo_benchmark_seed(1,3,3,1)||s==frodo_benchmark_seed(1,2,4,1))return 380;frodo_benchmark_fill_words(a,64,s);frodo_benchmark_fill_words(b,64,s);frodo_benchmark_fill_words(c,64,frodo_benchmark_seed(1,2,4,1));if(memcmp(a,b,sizeof a)||!memcmp(a,c,sizeof a))return 381;return 0;}
+int main(void){int r;if((r=test_orig()))return r;if((r=test_sda_map()))return r;if((r=test_reject()))return r;if((r=test_bitreader()))return r;if((r=test_tail()))return r;if((r=test_fast_extract()))return r;if((r=test_word_sign_exhaustive()))return r;if((r=test_word_accounting_synthetic()))return r;if((r=test_word_no_stats_equivalence()))return r;if((r=test_dispatch_framework()))return r;if((r=test_fair_reference_paths()))return r;if((r=test_benchmark_input_reproducibility()))return r;puts("frodo_sample_n tests passed");return 0;}

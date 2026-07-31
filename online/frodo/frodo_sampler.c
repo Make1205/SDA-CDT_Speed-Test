@@ -20,7 +20,7 @@ const char *frodo_frontend_name(frodo_frontend f){return f==FRODO_FRONTEND_ORIGI
 const char *frodo_implementation_label(frodo_sampler_kind k,frodo_backend b,frodo_frontend f){
     if(k==FRODO_SAMPLER_ORIGINAL_CDT)return b==FRODO_BACKEND_AVX2?"original-avx2":"original-reference";
     if(f==FRODO_FRONTEND_PACKED_BIT)return b==FRODO_BACKEND_AVX2?"sda-packed-avx2":"sda-packed-reference";
-    if(f==FRODO_FRONTEND_WORD_ORIENTED)return b==FRODO_BACKEND_AVX2?"sda-word-avx2":"sda-word-reference";
+    if(f==FRODO_FRONTEND_WORD_ORIENTED)return b==FRODO_BACKEND_AVX2?"sda-word-reference-via-avx2-dispatch":"sda-word-reference";
     return "invalid";
 }
 int frodo_backend_available(frodo_backend b){return b==FRODO_BACKEND_REFERENCE || (b==FRODO_BACKEND_AVX2 && sdat_avx2_cpu_supported());}

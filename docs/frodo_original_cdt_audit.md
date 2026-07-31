@@ -7,7 +7,7 @@ This note records the audit for the anomalously low Frodo-640 Original CDT cycle
 For the deprecated `official-original-scalar` rows (now `original-reference`), all three parameter sets use the same benchmark and wrapper layers:
 
 ```text
-benchmark_frodo_sample_n.c main()
+benchmark_frodo.c canonical driver
 -> one(parameter_set, original_table, sda_table, sample_count, repetition)
 -> unified Frodo dispatch for `original-reference`
 -> memcpy(out, words, sample_count * sizeof(uint16_t))
@@ -55,4 +55,4 @@ This audit classifies the anomaly as Case 1: a real compiler/build artifact in o
 
 ## Follow-up architecture cleanup
 
-The Frodo sample_n code now treats parameter set, sampler kind, backend, and frontend as orthogonal dispatch dimensions.  The canonical benchmark labels are `original-reference`, `original-avx2`, `sda-packed-reference`, `sda-packed-avx2`, `sda-word-reference`, and `sda-word-avx2`; the older `*-scalar` labels are deprecated because auto-vectorized portable C audit builds are not paper-primary Reference results; Reference now disables sampler-loop vectorization.  The paper-primary interpretation remains reference-vs-reference (`original-reference` vs `sda-word-reference`) at the same parameter set and mode, while AVX2 is valid but future-work.
+The Frodo sample_n code now treats parameter set, sampler kind, backend, and frontend as orthogonal dispatch dimensions.  The canonical benchmark labels are `original-reference`, `original-avx2`, `sda-packed-reference`, `sda-packed-avx2`, `sda-word-reference`, and `sda-word-reference-via-avx2-dispatch`; the older `*-scalar` labels are deprecated because auto-vectorized portable C audit builds are not paper-primary Reference results; Reference now disables sampler-loop vectorization.  The paper-primary interpretation remains reference-vs-reference (`original-reference` vs `sda-word-reference`) at the same parameter set and mode, The word-oriented AVX2 dispatch currently delegates to scalar code and is therefore excluded from AVX2 benchmark rows; a genuine word-oriented AVX2 implementation remains future work.
