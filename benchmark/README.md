@@ -1,102 +1,96 @@
 # C Benchmarks
 
-The maintained C17 benchmark executables are `benchmark_frodo`,
-`benchmark_falcon_base_sampler`, and `benchmark_falcon_breakdown`. Frodo deliberately has
-one canonical executable and one runner:
+The repository has one canonical C17 Frodo executable, `benchmark_frodo`, and one formal
+user entry point:
 
 ```sh
 benchmark/scripts/run_frodo_benchmarks.sh
 ```
 
-## Canonical Frodo methodology
+The Falcon benchmark executables remain separate and are unaffected.
 
-The paper-authoritative rows are only `full-sampler-core / original-reference` and
-`full-sampler-core / sda-word-reference`. Both use the reference backend. The latter is
-the production word-oriented `branchless-map-before-accept` variant. They are emitted
-once by the canonical driver's `full` scope into `frodo_full_sampler_raw.csv`.
+## Frodo measurements
 
-`frodo_microbench_raw.csv` contains only:
+The runner launches Original and SDA as separate, sequential processes while using the
+same executable, build, seed derivation, word stream, timer, counts, parameter rotation,
+and CPU affinity. It creates exactly two raw CSV files:
 
-* `standalone-materialized-input-frontend`, which materializes equal candidate/sign arrays;
-* `standalone-cdt-mapping`, which maps inputs prepared before timing; and
-* `diagnostic-full-sampler`, which compares the branchless diagnostic baseline with
-  `sda-diagnostic-accept-before-map`.
+* `frodo_full_sampler_raw.csv`: `full-sampler-fused` and
+  `full-sampler-block-staged`;
+* `frodo_stage_breakdown_raw.csv`: `block-stage-input` and
+  `block-stage-mapping`.
 
-The frontend and mapping measurements are independent microbenchmarks, not additive
-stages of the fused full sampler. Neither they, the diagnostic, nor packed-bit rows are
-sources for the main reference speed result. Optional `packed-bit-full-sampler` rows go
-to the full CSV when `FRODO_BENCH_SCOPES=full,micro,packed`; they describe a different
-randomness/physical-consumption interface and are not the word-oriented main result.
+The paper-primary speed measurement remains `full-sampler-fused`: `original-reference`
+or the production scalar `sda-word-reference` (`branchless-map-before-accept`). The
+block-staged sampler is an explanatory pipeline and does not replace production.
 
-All raw words and packed buffers are generated before timing from a deterministic seed
-of parameter set, explicit process index, repetition, and stream ID. PID is metadata
-only. Timed regions exclude SHAKE, PRG, system RNG, fill, allocation, checksum, CSV, and
-statistics. Full timed calls are no-stats; an untimed identical-input replay supplies
-metadata and must have the same checksum.
+The default stage block size is 4096 outputs for every parameter set. Override it only
+with the common `FRODO_STAGE_BLOCK_SIZE`; it is recorded in every row. Candidate and sign
+workspaces are allocated once before timing and reused for every block. No block performs
+allocation. Raw words are generated before timing, and all timed regions exclude RNG,
+fill, allocation, checksum, CSV, and stats replay.
 
-On x86 the shared timer uses a compiler barrier and `lfence; rdtsc` at entry, then
-`rdtscp; lfence` and a compiler barrier at exit. Other platforms use `CLOCK_MONOTONIC`.
-Pair order reverses by repetition parity and CSV records `first`/`second`; parameter order
-rotates, and the three microbenchmark groups use a fixed permutation of repetition and
-parameter ID. Warm-ups never produce rows.
+### Additive block stages
 
-The runner defaults to five sequential processes, 31 repetitions, five warm-ups,
-1,048,576 equal-size outputs, and scopes `full,micro`. `FRODO_BENCH_PROCESS_INDEX` is
-passed explicitly. `FRODO_BENCH_CPU` enables same-core taskset pinning. The runner keeps
-one header, does not aggregate cycles, and validates field counts, row counts, status,
-warm-up absence, and unique `(parameter_set,timing_scope,implementation,process_index,repetition)`
-keys.
+For Original, each block executes:
 
-## Compilation policy and AVX2 status
+1. input: raw words to candidate/sign buffers, with one word per output;
+2. mapping: candidate/sign buffers to signed CDT outputs.
 
-The canonical driver and portable reference sampler library use `-O3 -fno-lto` and have
-compiler vectorization disabled (`-fno-tree-vectorize -fno-tree-slp-vectorize` for GCC,
-the corresponding flags for Clang). Interprocedural optimization is disabled. Compiler
-identity, version, policy flags, and configured Git commit are included in every row.
-The separately compiled AVX2 library remains available. The optional `avx2` scope emits only the genuine packed-bit AVX2 path; it never emits a word-oriented AVX2 row: `frodo_sda_word_sample_n_avx2` currently
-delegates to the scalar word implementation, so there is no genuine SDA word-oriented
-AVX2 implementation and no misleading `sda-word-avx2` result.
+For SDA, each block executes:
 
-Falcon benchmarks remain separate and are unaffected by the Frodo driver consolidation.
+1. input: specialized extraction, `candidate < q` rejection, sign extraction, and
+   accepted-output compaction until the block is full;
+2. mapping: accepted candidate/sign buffers to signed CDT outputs.
 
-## Implementation-specific local runs
+The staged implementation uses the same parameter-specialized extraction and mapping
+primitives as the reference samplers, preserves accepted order and accounting, and
+handles a final partial block. It never materializes sample-count-sized intermediate
+arrays.
 
-The canonical C executable remains `benchmark_frodo`. Two small shell wrappers select a
-single implementation without copying any benchmark logic:
+An uninstrumented call measures the entire block loop. A separate instrumented call uses
+one serialized timestamp sequence per block (`t0`, input, `t1`, mapping, `t2`) and stores
+both raw stage cycle totals. `reconstructed_cycles_total` is exactly the paired input plus
+mapping cycles; no scaling, subtraction, fitting, or redistribution is used. The runner
+also reports, without altering raw rows:
 
-```sh
-benchmark/scripts/run_frodo_original.sh  # frodo_original_raw.csv
-benchmark/scripts/run_frodo_sda.sh       # frodo_sda_raw.csv
+```
+stage_sum_gap_percent = 100 * (input_cycles + mapping_cycles) / staged_full_cycles - 100
+staging_overhead_percent = 100 * staged_full_cycles / fused_full_cycles - 100
 ```
 
-Both accept the same `FRODO_BENCH_RESULTS_DIR`, `FRODO_BENCH_PROCESSES`,
-`FRODO_BENCH_REPETITIONS`, `FRODO_BENCH_WARMUP`, `FRODO_BENCH_SAMPLE_COUNT`,
-`FRODO_BENCH_MODE`, `FRODO_BENCH_SCOPES`, `FRODO_BENCH_CPU`, and `BUILD` variables.
-They use the same executable, build, parameter rotation, deterministic word stream,
-timer, no-stats calls, and replay checks. Rows can therefore be joined offline on
-parameter set, process index, repetition, input seed, and input stream ID. Separate runs
-avoid sharing momentary state inside one process, but should still be made on the same
-machine and pinned CPU with identical builds and nearby system conditions.
+The first quantity exposes timer and block-loop representativeness; values over 3% are a
+reason to inspect the environment, not a value to force to zero. The second measures
+intermediate-buffer, block-boundary, and lost-fusion overhead and is not expected to be
+zero.
 
-The Original wrapper selects only Original full/frontend/mapping rows. The SDA wrapper
-selects only SDA full/frontend/mapping and both SDA diagnostic rows. Their validators
-reject the other implementation, warm-up rows, duplicate keys, non-`ok` status, malformed
-schemas, or a missing authoritative row. These wrappers do not create another C harness.
+The old standalone full-array frontend/mapping measurements and accept-before-map
+diagnostic are no longer emitted by the formal runner. Their primitives and correctness
+tests remain, but they cannot be confused with the additive staged breakdown.
 
-## SDA scalar frontend audit
+## Pairing and aggregation
 
-Release assembly showed that table/parameter dispatch occurs once before each specialized
-frontend loop; q, mask, and sign shifts are immediates, and no division, modulo, function
-call, stats, or checksum is present in a timed hot loop. The primary cost was the
-unpredictable acceptance branch plus two accepted-output stores. Frodo-1344 rejects about
-20.3% of attempts (roughly 1.255 attempts/output), making this branch particularly costly;
-there was no additional Frodo-1344-only dynamic dispatch.
+Rows pair on parameter set, implementation, process index, repetition, input seed, and
+input stream ID. Fused, staged-total, input-stage, and mapping-stage rows have identical
+checksums and attempts/rejections/source-word accounting.
 
-The specialized loops now share inline candidate/sign/accept primitives with the fused
-word samplers and use branchless compacting stores: each attempt writes the current output
-slot and advances candidate/sign destinations by the public acceptance bit. Rejected
-writes are overwritten and are not observable. Candidate, sign, and acceptance are each
-computed once. The fused production path remains branchless map-before-accept and does not
-materialize intermediate arrays. Its generated hot-loop assembly is unchanged apart from
-using the shared inline primitives, so medium-run differences there should be treated as
-measurement variation rather than a claimed algorithmic speedup.
+For reporting, first compute the paired per-repetition reconstruction
+`input_cycles_r + mapping_cycles_r`. Within each process take the median of the 31
+repetition values, then take the median of the five process medians. Do not add a median
+input stage to a median mapping stage: in general `median(A) + median(B)` is not
+`median(A+B)`.
+
+## Runner and build policy
+
+Defaults are five sequential processes, 31 repetitions, five warm-ups, 1,048,576
+accepted outputs, equal-size mode, and block size 4096. `FRODO_BENCH_CPU` pins every
+process with `taskset` when available. The runner validates headers, 47 fields, status,
+unique keys, matched four-row groups, seed/stream pairing, checksums, accounting, exact
+stage reconstruction, and expected row counts. It writes a non-CSV companion report
+`frodo_benchmark_validation.txt` with observed gaps and overheads; raw measured cycles
+are never rewritten.
+
+The portable reference sampler and benchmark driver use `-O3 -fno-lto`, disabled IPO,
+and disabled compiler vectorization (`-fno-tree-vectorize -fno-tree-slp-vectorize` on
+GCC). Compiler ID, version, flags, and configured Git commit are included in every row.
+There is still no genuine SDA word-oriented AVX2 implementation.

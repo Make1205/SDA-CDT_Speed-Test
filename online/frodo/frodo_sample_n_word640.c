@@ -28,3 +28,4 @@ int frodo640_sda_word_no_stats(uint16_t *out,size_t n,const uint16_t *w,size_t w
     return dst==dst_end?0:-2;
 }
 int frodo640_sda_word_accept_before_map(uint16_t *out,size_t n,const uint16_t*w,size_t wc){size_t a=0,p=0;while(a<n&&p<wc){uint16_t z=w[p++];uint16_t c=frodo640_word_candidate(z);if(frodo640_word_accept(c))out[a++]=sign640(ge640(c),frodo640_word_sign(z));}return a==n?0:-2;}
+int frodo640_sda_map_materialized(uint16_t*out,const uint16_t*c,const uint8_t*s,size_t n){for(size_t i=0;i<n;i++)out[i]=sign640(ge640(c[i]),s[i]);return 0;}
