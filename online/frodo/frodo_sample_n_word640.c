@@ -1,5 +1,6 @@
 #include "frodo_sample_n_fast.h"
 #include "sdat_tables.h"
+#include "frodo_word_core.h"
 
 static inline uint16_t sign640(uint16_t mag, uint8_t sign) {
     return (uint16_t)(((uint16_t)(-(uint16_t)(sign & 1u)) ^ mag) + (sign & 1u));
@@ -13,20 +14,17 @@ static inline uint16_t ge640(uint16_t x) {
                       (x >= t[9]) + (x >= t[10]));
 }
 
-int frodo640_sda_word_no_stats(uint16_t *out, size_t n,
-                                const uint16_t *w, size_t wc) {
-    const uint16_t *src = w;
-    const uint16_t *end = w + wc;
-    uint16_t *dst = out;
-    uint16_t *dst_end = out + n;
-    while (dst < dst_end && src < end) {
-        uint16_t z = *src++;
-        uint16_t c = (uint16_t)(z & 0x3fffu);
-        uint16_t sample = sign640(ge640(c), (uint8_t)((z >> 14) & 1u));
-        unsigned accept = (unsigned)(c < 14534u);
-        *dst = sample;
-        dst += accept;
+int frodo640_sda_word_no_stats(uint16_t *out,size_t n,const uint16_t *w,size_t wc){
+    const uint16_t *src=w,*end=w+wc;
+    uint16_t *dst=out,*dst_end=out+n;
+    while(dst<dst_end&&src<end){
+        uint16_t z=*src++;
+        uint16_t c=frodo640_word_candidate(z);
+        uint16_t sample=sign640(ge640(c),frodo640_word_sign(z));
+        unsigned accept=(unsigned)frodo640_word_accept(c);
+        *dst=sample;
+        dst+=accept;
     }
-    return dst == dst_end ? 0 : -2;
+    return dst==dst_end?0:-2;
 }
-int frodo640_sda_word_accept_before_map(uint16_t *out,size_t n,const uint16_t*w,size_t wc){size_t a=0,p=0;while(a<n&&p<wc){uint16_t z=w[p++],c=(uint16_t)(z&0x3fffu);if(c<14534u)out[a++]=sign640(ge640(c),(uint8_t)((z>>14)&1u));}return a==n?0:-2;}
+int frodo640_sda_word_accept_before_map(uint16_t *out,size_t n,const uint16_t*w,size_t wc){size_t a=0,p=0;while(a<n&&p<wc){uint16_t z=w[p++];uint16_t c=frodo640_word_candidate(z);if(frodo640_word_accept(c))out[a++]=sign640(ge640(c),frodo640_word_sign(z));}return a==n?0:-2;}

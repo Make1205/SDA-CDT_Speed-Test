@@ -58,3 +58,45 @@ delegates to the scalar word implementation, so there is no genuine SDA word-ori
 AVX2 implementation and no misleading `sda-word-avx2` result.
 
 Falcon benchmarks remain separate and are unaffected by the Frodo driver consolidation.
+
+## Implementation-specific local runs
+
+The canonical C executable remains `benchmark_frodo`. Two small shell wrappers select a
+single implementation without copying any benchmark logic:
+
+```sh
+benchmark/scripts/run_frodo_original.sh  # frodo_original_raw.csv
+benchmark/scripts/run_frodo_sda.sh       # frodo_sda_raw.csv
+```
+
+Both accept the same `FRODO_BENCH_RESULTS_DIR`, `FRODO_BENCH_PROCESSES`,
+`FRODO_BENCH_REPETITIONS`, `FRODO_BENCH_WARMUP`, `FRODO_BENCH_SAMPLE_COUNT`,
+`FRODO_BENCH_MODE`, `FRODO_BENCH_SCOPES`, `FRODO_BENCH_CPU`, and `BUILD` variables.
+They use the same executable, build, parameter rotation, deterministic word stream,
+timer, no-stats calls, and replay checks. Rows can therefore be joined offline on
+parameter set, process index, repetition, input seed, and input stream ID. Separate runs
+avoid sharing momentary state inside one process, but should still be made on the same
+machine and pinned CPU with identical builds and nearby system conditions.
+
+The Original wrapper selects only Original full/frontend/mapping rows. The SDA wrapper
+selects only SDA full/frontend/mapping and both SDA diagnostic rows. Their validators
+reject the other implementation, warm-up rows, duplicate keys, non-`ok` status, malformed
+schemas, or a missing authoritative row. These wrappers do not create another C harness.
+
+## SDA scalar frontend audit
+
+Release assembly showed that table/parameter dispatch occurs once before each specialized
+frontend loop; q, mask, and sign shifts are immediates, and no division, modulo, function
+call, stats, or checksum is present in a timed hot loop. The primary cost was the
+unpredictable acceptance branch plus two accepted-output stores. Frodo-1344 rejects about
+20.3% of attempts (roughly 1.255 attempts/output), making this branch particularly costly;
+there was no additional Frodo-1344-only dynamic dispatch.
+
+The specialized loops now share inline candidate/sign/accept primitives with the fused
+word samplers and use branchless compacting stores: each attempt writes the current output
+slot and advances candidate/sign destinations by the public acceptance bit. Rejected
+writes are overwritten and are not observable. Candidate, sign, and acceptance are each
+computed once. The fused production path remains branchless map-before-accept and does not
+materialize intermediate arrays. Its generated hot-loop assembly is unchanged apart from
+using the shared inline primitives, so medium-run differences there should be treated as
+measurement variation rather than a claimed algorithmic speedup.

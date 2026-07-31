@@ -20,3 +20,10 @@ benchmark/scripts/run_falcon_benchmarks.sh
 ```
 
 Outputs are raw CSV under `build/benchmark-results/`; they are transient and ignored. No Python summarizer or generated summary is part of this repository.
+
+For separate local Frodo measurements, run `benchmark/scripts/run_frodo_original.sh` and
+`benchmark/scripts/run_frodo_sda.sh`. They are implementation selectors around the same
+`benchmark_frodo` binary, not separate benchmark harnesses. Keep their build directory,
+CPU affinity, counts, mode, and scopes identical; pair rows by parameter set, process
+index, repetition, input seed, and input stream ID. The default outputs are
+`frodo_original_raw.csv` and `frodo_sda_raw.csv`.

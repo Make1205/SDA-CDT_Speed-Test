@@ -1,5 +1,6 @@
 #include "frodo_sample_n_fast.h"
 #include "sdat_tables.h"
+#include "frodo_word_core.h"
 #include <string.h>
 int frodo640_sda_word_no_stats(uint16_t *out,size_t n,const uint16_t *w,size_t wc);
 int frodo976_sda_word_no_stats(uint16_t *out,size_t n,const uint16_t *w,size_t wc);
@@ -36,9 +37,9 @@ static int word1344(uint16_t*out,size_t n,const uint16_t*w,size_t wc,sdat_stats*
 int frodo_sda_word_sample_n(uint16_t*out,size_t n,const uint16_t*w,size_t wc,const sdat_table*t,sdat_stats*st){if(t==&sda_table_frodo640)return word640(out,n,w,wc,st);if(t==&sda_table_frodo976)return word976(out,n,w,wc,st);if(t==&sda_table_frodo1344)return word1344(out,n,w,wc,st);return -1;}
 int frodo_sda_word_sample_n_avx2(uint16_t*out,size_t n,const uint16_t*w,size_t wc,const sdat_table*t,sdat_stats*st){return frodo_sda_word_sample_n(out,n,w,wc,t,st);} 
 size_t frodo_original_materialize_words(uint16_t*c,uint8_t*s,size_t n,const uint16_t*w,size_t wc){if(!c||!s||!w||wc<n)return 0;for(size_t i=0;i<n;i++){uint16_t z=w[i];c[i]=(uint16_t)(z>>1);s[i]=(uint8_t)(z&1u);}return n;}
-#define MATERIALIZE(NAME,TYPE,MASK,SHIFT,Q) static size_t NAME(uint16_t*c,uint8_t*s,size_t n,const uint16_t*w,size_t wc){size_t a=0,p=0;while(a<n&&p<wc){uint16_t z=w[p++];TYPE x=(TYPE)(z&MASK);if(x<Q){c[a]=(uint16_t)x;s[a]=(uint8_t)((z>>SHIFT)&1u);a++;}}return a==n?p:0;}
-MATERIALIZE(materialize640,uint16_t,0x3fffu,14,14534u)
-MATERIALIZE(materialize976,uint16_t,0x1fffu,13,7442u)
-MATERIALIZE(materialize1344,uint8_t,0x7fu,7,102u)
+#define MATERIALIZE(NAME,TYPE,CANDIDATE,SIGN,ACCEPT) static size_t NAME(uint16_t*c,uint8_t*s,size_t n,const uint16_t*w,size_t wc){uint16_t*cdst=c;uint16_t*cend=c+n;uint8_t*sdst=s;const uint16_t*src=w;const uint16_t*send=w+wc;while(cdst<cend&&src<send){uint16_t z=*src++;TYPE x=CANDIDATE(z);unsigned accept=(unsigned)ACCEPT(x);*cdst=(uint16_t)x;*sdst=SIGN(z);cdst+=accept;sdst+=accept;}return cdst==cend?(size_t)(src-w):0;}
+MATERIALIZE(materialize640,uint16_t,frodo640_word_candidate,frodo640_word_sign,frodo640_word_accept)
+MATERIALIZE(materialize976,uint16_t,frodo976_word_candidate,frodo976_word_sign,frodo976_word_accept)
+MATERIALIZE(materialize1344,uint8_t,frodo1344_word_candidate,frodo1344_word_sign,frodo1344_word_accept)
 size_t frodo_sda_materialize_words(uint16_t*c,uint8_t*s,size_t n,const uint16_t*w,size_t wc,const sdat_table*t){if(!c||!s||!w)return 0;if(t==&sda_table_frodo640)return materialize640(c,s,n,w,wc);if(t==&sda_table_frodo976)return materialize976(c,s,n,w,wc);if(t==&sda_table_frodo1344)return materialize1344(c,s,n,w,wc);return 0;}
 int frodo_sda_word_sample_n_accept_before_map(uint16_t*out,size_t n,const uint16_t*w,size_t wc,const sdat_table*t){if(t==&sda_table_frodo640)return frodo640_sda_word_accept_before_map(out,n,w,wc);if(t==&sda_table_frodo976)return frodo976_sda_word_accept_before_map(out,n,w,wc);if(t==&sda_table_frodo1344)return frodo1344_sda_word_accept_before_map(out,n,w,wc);return -1;}
