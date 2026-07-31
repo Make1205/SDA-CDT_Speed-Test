@@ -33,3 +33,15 @@ Portable/reference samplers are the paper-primary comparison path. AVX2 remains 
 The Frodo runtime exposes a unified sampler dispatch layer with orthogonal dimensions: sampler kind (`original-cdt` or `sda-cdt`), backend (`reference` or `avx2`), frontend (`original-word`, `packed-bit`, or `word-oriented`), and parameter set (`frodo640`, `frodo976`, `frodo1344`).  Parameter descriptors reference the existing production tables; they do not copy or replace q values, CDFs, PMFs, thresholds, manifests, or hashes.
 
 `reference` means portable C compiled for the Frodo sampler with compiler vectorization disabled for sampler loops.  It may still use ordinary scalar optimization, but auto-vectorized portable C audit builds are not paper-primary reference results.  Hand-written AVX2 remains in the AVX2 backend and is not used to justify paper-primary reference speedups.
+
+## Falcon base-sampler benchmark representation
+
+The Falcon base sampler consumes one little-endian nine-byte value per 72-bit attempt and
+uses the existing exact `sdat_u72` representation (`uint64_t lo`, `uint8_t hi`). Original
+performs no rejection and maps with the official 19 reverse-tail thresholds using strict
+`candidate < threshold` comparisons. Those thresholds originate as three 24-bit limbs;
+the online table stores the exact normalized `sdat_u72` values. SDA rejects
+`candidate >= q` for q `{lo=10215721069833441392, hi=254}` and then maps accepted values
+with 18 ordinary cumulative `sdat_u72` thresholds using `candidate >= threshold`. Thus the
+production SDA base path is accept-before-map. Both paths produce only a nonnegative base
+magnitude; sign handling and samplerZ are outside this benchmark.

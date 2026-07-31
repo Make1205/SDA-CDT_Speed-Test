@@ -122,6 +122,9 @@ static int check_batch(void) {
     return 0;
 }
 
+static uint64_t stage_clock(void*ctx){uint64_t*v=ctx;*v+=19;return *v;}
+static int check_block_staged(void){static uint8_t raw[9*20000];static uint32_t fused[7777],staged[7777],instrumented[7777];static sdat_u72 candidates[8192];const size_t counts[]={1,4095,4096,4097,7777},blocks[]={8192,4096,4096,4096,257};for(unsigned seed=0;seed<4;seed++){for(size_t i=0;i<sizeof raw;i++)raw[i]=(uint8_t)(i*37u+seed*53u+11u);for(int kind=0;kind<2;kind++)for(size_t ci=0;ci<sizeof counts/sizeof counts[0];ci++){size_t n=counts[ci],block=blocks[ci];bytes_ctx c={raw,sizeof raw,0};sdat_stats fs={0},ss={0},is={0};size_t got=kind?falcon_sda_gaussian0_sample_n(bytes_cb,&c,fused,n,&fs):falcon_original_gaussian0_sample_n(bytes_cb,&c,fused,n,&fs);if(got!=n)return 60+kind;falcon_stage_workspace ws={candidates,8192};int rc=kind?falcon_sda_block_staged_sample_n(staged,n,raw,sizeof raw,block,&ws,&ss,0):falcon_original_block_staged_sample_n(staged,n,raw,sizeof raw,block,&ws,&ss,0);if(rc||memcmp(fused,staged,n*sizeof fused[0])||memcmp(&fs,&ss,sizeof fs))return 62+kind;uint64_t clock=0;falcon_stage_timing tm={stage_clock,&clock,0,0,0};rc=kind?falcon_sda_block_staged_sample_n(instrumented,n,raw,sizeof raw,block,&ws,&is,&tm):falcon_original_block_staged_sample_n(instrumented,n,raw,sizeof raw,block,&ws,&is,&tm);size_t nb=(n+block-1)/block;if(rc||memcmp(staged,instrumented,n*sizeof staged[0])||memcmp(&ss,&is,sizeof ss)||tm.input_cycles+tm.mapping_cycles!=38*nb||tm.outer_cycles!=19*(3*nb+1)||tm.outer_cycles<tm.input_cycles+tm.mapping_cycles)return 64+kind;for(size_t i=0;i<n;i++)if(staged[i]>FALCON_BASE_SUPPORT_MAX)return 66+kind;}}
+falcon_stage_workspace ws={candidates,8192};if(falcon_original_block_staged_sample_n(staged,1,raw,sizeof raw,0,&ws,0,0)!=-1||falcon_sda_block_staged_sample_n(staged,1,raw,sizeof raw,0,&ws,0,0)!=-1)return 68;sdat_u72 q=sda_table_falcon_base.denominator_u72,qm=sub1(q);sdat_u72_to_le9(q,raw);sdat_u72_to_le9(qm,raw+9);sdat_stats st={0};if(falcon_sda_block_staged_sample_n(staged,1,raw,18,1,&ws,&st,0)||st.attempts!=2||st.rejections!=1||st.random_bytes!=18||staged[0]!=18)return 69;return 0;}
 int main(void) {
     int r;
     if ((r = check_tables())) return r;
@@ -130,6 +133,7 @@ int main(void) {
     if ((r = check_byte_order_and_rejection())) return r;
     if ((r = check_batch())) return r;
     if ((r = check_no_stats_equivalence())) return r;
+    if ((r = check_block_staged())) return r;
     puts("falcon base sampler tests passed");
     return 0;
 }

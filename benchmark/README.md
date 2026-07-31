@@ -7,7 +7,7 @@ user entry point:
 benchmark/scripts/run_frodo_benchmarks.sh
 ```
 
-The Falcon benchmark executables remain separate and are unaffected.
+Falcon now mirrors the same canonical fused/block-staged methodology through `benchmark_falcon` and `benchmark/scripts/run_falcon_benchmarks.sh`.
 
 ## Frodo measurements
 
@@ -84,7 +84,7 @@ input stage to a median mapping stage: in general `median(A) + median(B)` is not
 
 Defaults are five sequential processes, 31 repetitions, five warm-ups, 1,048,576
 accepted outputs, equal-size mode, and block size 4096. `FRODO_BENCH_CPU` pins every
-process with `taskset` when available. The runner validates headers, 47 fields, status,
+process with `taskset` when available. The runner validates headers, 51 fields, status,
 unique keys, matched four-row groups, seed/stream pairing, checksums, accounting, exact
 stage reconstruction, and expected row counts. It writes a non-CSV companion report
 `frodo_benchmark_validation.txt` with observed gaps and overheads; raw measured cycles
@@ -94,3 +94,38 @@ The portable reference sampler and benchmark driver use `-O3 -fno-lto`, disabled
 and disabled compiler vectorization (`-fno-tree-vectorize -fno-tree-slp-vectorize` on
 GCC). Compiler ID, version, flags, and configured Git commit are included in every row.
 There is still no genuine SDA word-oriented AVX2 implementation.
+
+## Falcon base-sampler measurements
+
+Falcon measures only the existing nonnegative Gaussian0 base sampler over support 0..18;
+it does not include samplerZ, BerExp, signs, centering, FFT sampling, or signing. Both
+implementations consume the same precomputed stream of little-endian nine-byte candidates,
+decoded exactly as `sdat_u72 { uint64_t lo; uint8_t hi; }`. Original maps every 72-bit
+candidate through the official reverse-tail CDT. SDA compares the decoded candidate with
+its exact 72-bit q, rejects first, and maps only accepted candidates, so its production
+variant is `accept-before-map`.
+
+Run only:
+
+```sh
+benchmark/scripts/run_falcon_benchmarks.sh
+```
+
+It launches separate sequential Original and SDA `benchmark_falcon` processes and writes
+`falcon_full_sampler_raw.csv`, `falcon_stage_breakdown_raw.csv`, and the non-CSV
+`falcon_benchmark_validation.txt`. Defaults match Frodo: 5 processes, 31 repetitions, 5
+warm-ups, 1,048,576 outputs, and a common block size of 4096. The two raw CSV headers are
+byte-for-byte identical to Frodo's 51-field schema.
+
+The instrumented Falcon staged call additionally records an outer serialized interval.
+`uncovered_cycles_total = instrumented_staged_cycles_total - reconstructed_cycles_total`
+is reported separately and is never assigned back to either stage. The runner requires
+raw input plus mapping cycles to equal the reconstruction exactly, requires reconstruction
+not to exceed the outer interval, and emits warnings rather than altering gaps over 3% or
+10%. `staging_difference_percent` is a staged-versus-fused difference, not a claim of pure
+memory overhead, because SDA fused and staged control/data ordering may differ.
+
+Falcon aggregation follows Frodo: compute reconstruction and stage shares within each
+matched repetition, take the median of 31 repetitions within each process, then the median
+of five process medians. Never substitute `median(input) + median(mapping)` for the median
+of paired sums. Original-to-SDA cycle change is `100 * (SDA / Original - 1)`.

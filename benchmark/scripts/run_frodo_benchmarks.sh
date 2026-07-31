@@ -45,8 +45,8 @@ expected=$((1 + PROCESSES * REPETITIONS * 3 * 2 * 2))
 [[ $(wc -l < "$STAGES") -eq $expected ]] || { echo "unexpected stage CSV line count" >&2; exit 1; }
 awk -F, -v report="$REPORT" '
 function key(){return $2 SUBSEP $6 SUBSEP $16 SUBSEP $18 SUBSEP $20 SUBSEP $21}
-FNR==1{if(NF!=47){print "invalid header width" > "/dev/stderr";bad=1}next}
-NF!=47{print "invalid field count" > "/dev/stderr";bad=1}
+FNR==1{if(NF!=51){print "invalid header width" > "/dev/stderr";bad=1}next}
+NF!=51{print "invalid field count" > "/dev/stderr";bad=1}
 $18 ~ /^-/{print "warm-up row present" > "/dev/stderr";bad=1}
 $33!="ok"{print "non-ok status" > "/dev/stderr";bad=1}
 {u=$2 SUBSEP $5 SUBSEP $6 SUBSEP $16 SUBSEP $18;if(unique[u]++){print "duplicate row key" > "/dev/stderr";bad=1};k=key();seen_impl[$6]=1}
