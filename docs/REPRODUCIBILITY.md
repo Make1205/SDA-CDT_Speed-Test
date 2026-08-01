@@ -40,3 +40,7 @@ is an exact reverse-tail serialization of the frozen PMF; SDA's q rejection rema
 input stage and accepted candidates enter the reverse-tail kernel directly. The former
 coordinate reflection is test-only. The CSV `table_hash` identifies the runtime table, not
 merely the distribution name.
+Both formal fused timed paths consume the precomputed LE9 buffer directly and share the
+same inline decode primitive; callback-based stats replay is untimed. Thus SDA's remaining
+input work beyond Original is only its fixed-q comparison, rejection loop, and accepted
+candidate compaction.

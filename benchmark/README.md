@@ -132,6 +132,13 @@ Four audit-only preparation variants remain callable by tests but are never emit
 formal CSV: reflected/reference comparison, direct tail/reference comparison, direct tail
 with optimized comparison, and fully optimized direct input.
 
+Original now uses the same shared inline LE9 primitive, direct single workspace/output
+store, and raw-buffer no-stats timed convention. The timed fused paths for both variants
+take a precomputed byte pointer directly; callback-based stats replay runs only after the
+timer. Original performs no q comparison, rejection, or compaction. Four Original
+audit-only variants retain the external reference decode, inline decode, direct-store, and
+fully optimized forms, but are not emitted to formal CSV.
+
 Run only:
 
 ```sh

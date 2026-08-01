@@ -15,6 +15,15 @@ typedef struct {
     uint32_t v2;
 } falcon_u72_limbs;
 
+static inline falcon_u72_limbs
+falcon_u72_limbs_from_le9_inline(const uint8_t src[9]) {
+    falcon_u72_limbs x;
+    x.v0 = (uint32_t)src[0] | ((uint32_t)src[1] << 8) | ((uint32_t)src[2] << 16);
+    x.v1 = (uint32_t)src[3] | ((uint32_t)src[4] << 8) | ((uint32_t)src[5] << 16);
+    x.v2 = (uint32_t)src[6] | ((uint32_t)src[7] << 8) | ((uint32_t)src[8] << 16);
+    return x;
+}
+
 falcon_u72_limbs falcon_u72_limbs_from_le9(const uint8_t in[9]);
 falcon_u72_limbs falcon_u72_limbs_from_sdat(sdat_u72 x);
 sdat_u72 falcon_u72_limbs_to_sdat(falcon_u72_limbs x);

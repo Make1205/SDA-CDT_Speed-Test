@@ -16,6 +16,12 @@ int falcon_original_gaussian0_sample(sdat_randombytes_fn randombytes, void *ctx,
 size_t falcon_original_gaussian0_sample_n(sdat_randombytes_fn randombytes, void *ctx, uint32_t *out, size_t n, sdat_stats *stats);
 int falcon_sda_gaussian0_sample(sdat_randombytes_fn randombytes, void *ctx, uint32_t *out, sdat_stats *stats);
 size_t falcon_sda_gaussian0_sample_n(sdat_randombytes_fn randombytes, void *ctx, uint32_t *out, size_t n, sdat_stats *stats);
+size_t falcon_original_gaussian0_sample_n_from_le9(const uint8_t *raw, size_t raw_len,
+                                                    uint32_t *out, size_t n,
+                                                    size_t *attempts);
+size_t falcon_sda_gaussian0_sample_n_from_le9(const uint8_t *raw, size_t raw_len,
+                                               uint32_t *out, size_t n,
+                                               size_t *attempts);
 uint64_t falcon_base_checksum(const uint32_t *out, size_t n);
 
 typedef uint64_t (*falcon_stage_clock_fn)(void *context);
@@ -27,6 +33,18 @@ typedef enum {
     FALCON_SDA_INPUT_DIRECT_OPT_COMPARE = 2,
     FALCON_SDA_INPUT_DIRECT_OPT_INPUT = 3
 } falcon_sda_input_audit_variant;
+typedef enum {
+    FALCON_ORIGINAL_INPUT_REFERENCE_DECODE = 0,
+    FALCON_ORIGINAL_INPUT_INLINE_DECODE = 1,
+    FALCON_ORIGINAL_INPUT_DIRECT_STORE = 2,
+    FALCON_ORIGINAL_INPUT_FULLY_OPTIMIZED = 3
+} falcon_original_input_audit_variant;
+size_t falcon_original_input_prepare_for_audit(
+    falcon_original_input_audit_variant variant, const uint8_t *raw, size_t raw_len,
+    falcon_u72_limbs *out, size_t n);
+size_t falcon_original_sample_raw_for_audit(
+    falcon_original_input_audit_variant variant, const uint8_t *raw, size_t raw_len,
+    uint32_t *out, size_t n);
 size_t falcon_sda_input_prepare_for_audit(
     falcon_sda_input_audit_variant variant, const uint8_t *raw, size_t raw_len,
     falcon_u72_limbs *out, size_t n, size_t *attempts);
