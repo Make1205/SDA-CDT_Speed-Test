@@ -99,11 +99,28 @@ There is still no genuine SDA word-oriented AVX2 implementation.
 
 Falcon measures only the existing nonnegative Gaussian0 base sampler over support 0..18;
 it does not include samplerZ, BerExp, signs, centering, FFT sampling, or signing. Both
-implementations consume the same precomputed stream of little-endian nine-byte candidates,
-decoded exactly as `sdat_u72 { uint64_t lo; uint8_t hi; }`. Original maps every 72-bit
-candidate through the official reverse-tail CDT. SDA compares the decoded candidate with
-its exact 72-bit q, rejects first, and maps only accepted candidates, so its production
-variant is `accept-before-map`.
+implementations consume the same precomputed stream of little-endian nine-byte candidates.
+The mapping hot path decodes each value into Falcon's three 24-bit limbs (`v0` least
+significant through `v2` most significant). Original maps every 72-bit candidate through
+the official reverse-tail CDT. SDA compares the decoded candidate with its exact 72-bit q,
+rejects first, and maps only accepted candidates, so its production variant is
+`sda-falcon-reverse-tail-accept-before-map`.
+
+Both variants call the single compiled function
+`falcon_gaussian0_reverse_tail_lookup()`. It always executes the official fixed 19-row
+subtraction-with-borrow loop; the last row is the zero threshold and never increments the
+result. Original supplies the unchanged official table. SDA supplies 18 exact reverse
+tails `T_j = q - sum(p_0..p_{j-1})`, followed by the same zero row. Consequently the
+mapping instruction path and comparison semantics are identical; only the table pointer
+differs. SDA's input stage reflects an accepted uniform coordinate through `q-1` before
+storing/passing it to the reverse-tail mapper; this bijection makes the runtime mapping
+pointwise equivalent to the retained cumulative representation without changing q,
+rejection, distribution, or randomness accounting. The former cumulative SDA lookup
+remains test-only. Its canonical PMF hash is
+still `15cb40167eda4761313ad83a6779b4657a7340625dac863a48843822e5802caa`, while the
+runtime reverse-tail LE9 hash recorded in CSV is
+`2d6a6d7a65aa8c86c276f134e88dfce5df85d2486c1a4b4cc16cb79fb2ae6fcd` (the former
+runtime cumulative hash was `13996a00c89a842e899ed50451d75ade30c51850fc97329d1dd0e579bf373e02`).
 
 Run only:
 

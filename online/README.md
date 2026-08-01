@@ -37,11 +37,13 @@ The Frodo runtime exposes a unified sampler dispatch layer with orthogonal dimen
 ## Falcon base-sampler benchmark representation
 
 The Falcon base sampler consumes one little-endian nine-byte value per 72-bit attempt and
-uses the existing exact `sdat_u72` representation (`uint64_t lo`, `uint8_t hi`). Original
-performs no rejection and maps with the official 19 reverse-tail thresholds using strict
-`candidate < threshold` comparisons. Those thresholds originate as three 24-bit limbs;
-the online table stores the exact normalized `sdat_u72` values. SDA rejects
-`candidate >= q` for q `{lo=10215721069833441392, hi=254}` and then maps accepted values
-with 18 ordinary cumulative `sdat_u72` thresholds using `candidate >= threshold`. Thus the
-production SDA base path is accept-before-map. Both paths produce only a nonnegative base
-magnitude; sign handling and samplerZ are outside this benchmark.
+decodes it into the official three-limb representation (`v0`, `v1`, `v2`, each 24 bits,
+least significant first). Original performs no rejection. SDA rejects `candidate >= q`
+for q `{lo=10215721069833441392, hi=254}` before mapping. Both then call the same compiled
+19-row reverse-tail kernel with strict `candidate < threshold` semantics and the same
+least-to-most-significant subtraction/borrow chain. Original supplies the unchanged
+official table; SDA supplies exact reverse tails derived from the unchanged PMF and q,
+plus the official-style final zero row. Both paths produce only a nonnegative base
+magnitude. SDA reflects each accepted coordinate through `q-1` in its input stage, making
+the new reverse-tail runtime representation pointwise identical to the prior cumulative
+map. Sign handling and samplerZ are outside this benchmark.

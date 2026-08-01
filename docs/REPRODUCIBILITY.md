@@ -34,3 +34,8 @@ For canonical Falcon base-sampler measurements, use only
 through `benchmark_falcon`, uses the same 51-field schema as Frodo, and produces only
 `falcon_full_sampler_raw.csv`, `falcon_stage_breakdown_raw.csv`, plus a text validation
 report. Falcon here means the nonnegative Gaussian0 base sampler, not samplerZ or signing.
+Original and SDA mapping rows invoke the same separately compiled Falcon-style reverse-tail
+kernel over the same three-24-bit-limb representation and fixed 19-row loop. The SDA table
+is an exact reverse-tail serialization of the frozen PMF; SDA's q rejection remains in its
+input stage. The CSV `table_hash` identifies the runtime table, not merely the distribution
+name.
