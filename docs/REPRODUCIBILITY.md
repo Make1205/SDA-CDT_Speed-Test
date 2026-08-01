@@ -37,5 +37,6 @@ report. Falcon here means the nonnegative Gaussian0 base sampler, not samplerZ o
 Original and SDA mapping rows invoke the same separately compiled Falcon-style reverse-tail
 kernel over the same three-24-bit-limb representation and fixed 19-row loop. The SDA table
 is an exact reverse-tail serialization of the frozen PMF; SDA's q rejection remains in its
-input stage. The CSV `table_hash` identifies the runtime table, not merely the distribution
-name.
+input stage and accepted candidates enter the reverse-tail kernel directly. The former
+coordinate reflection is test-only. The CSV `table_hash` identifies the runtime table, not
+merely the distribution name.

@@ -30,6 +30,25 @@ static uint32_t map_sda(falcon_u72_limbs x) {
         x, falcon_gaussian0_sda_reverse_tail_table());
 }
 
+#define FALCON_SDA_Q0 15028336u
+#define FALCON_SDA_Q1 8925203u
+#define FALCON_SDA_Q2 16682437u
+
+static inline falcon_u72_limbs decode_le9_inline(const uint8_t *in) {
+    falcon_u72_limbs x;
+    x.v0 = (uint32_t)in[0] | ((uint32_t)in[1] << 8) | ((uint32_t)in[2] << 16);
+    x.v1 = (uint32_t)in[3] | ((uint32_t)in[4] << 8) | ((uint32_t)in[5] << 16);
+    x.v2 = (uint32_t)in[6] | ((uint32_t)in[7] << 8) | ((uint32_t)in[8] << 16);
+    return x;
+}
+
+/* q is close to 2^72, so the first branch accepts almost every candidate. */
+static inline int sda_candidate_is_accepted(falcon_u72_limbs x) {
+    if (x.v2 != FALCON_SDA_Q2) return x.v2 < FALCON_SDA_Q2;
+    if (x.v1 != FALCON_SDA_Q1) return x.v1 < FALCON_SDA_Q1;
+    return x.v0 < FALCON_SDA_Q0;
+}
+
 /* Reverse-tail coordinates run in the opposite direction from the retained
  * canonical cumulative table.  Reflecting an accepted uniform value through
  * q-1 is a bijection, preserves the exact raw-input KAT, and belongs to SDA's
@@ -45,6 +64,10 @@ static falcon_u72_limbs sda_reverse_coordinate(falcon_u72_limbs x) {
     borrow = qminus.v1 < x.v1 + borrow;
     r.v2 = qminus.v2 - x.v2 - borrow;
     return r;
+}
+
+uint32_t falcon_sda_gaussian0_reflected_lookup_for_test(sdat_u72 x) {
+    return map_sda(sda_reverse_coordinate(falcon_u72_limbs_from_sdat(x)));
 }
 
 int falcon_original_gaussian0_sample_from_u72(sdat_u72 x, uint32_t *out) {
@@ -63,12 +86,12 @@ int falcon_sda_gaussian0_sample_from_u72(sdat_u72 x, uint32_t *out,
     falcon_u72_limbs candidate;
     if (!out || !accepted) return -1;
     candidate = falcon_u72_limbs_from_sdat(x);
-    if (!falcon_u72_limbs_lt(candidate, falcon_gaussian0_sda_q_limbs())) {
+    if (!sda_candidate_is_accepted(candidate)) {
         *accepted = 0;
         return 0;
     }
     *accepted = 1;
-    *out = map_sda(sda_reverse_coordinate(candidate));
+    *out = map_sda(candidate);
     return *out <= FALCON_BASE_SUPPORT_MAX ? 0 : -2;
 }
 
@@ -123,24 +146,36 @@ int falcon_sda_gaussian0_sample(sdat_randombytes_fn randombytes, void *ctx,
 size_t falcon_sda_gaussian0_sample_n(sdat_randombytes_fn randombytes, void *ctx,
                                      uint32_t *out, size_t n,
                                      sdat_stats *stats) {
-    const falcon_u72_limbs q = falcon_gaussian0_sda_q_limbs();
     size_t i;
     if ((!out || !randombytes) && n) return 0;
-    if (stats) *stats = (sdat_stats){0};
+    if (!stats) {
+        for (i = 0; i < n; i++) {
+            falcon_u72_limbs x;
+            do {
+                uint8_t b[FALCON_BASE_RANDOM_BYTES];
+                if (randombytes(ctx, b, sizeof b)) return i;
+                x = decode_le9_inline(b);
+            } while (!sda_candidate_is_accepted(x));
+            out[i] = map_sda(x);
+            if (out[i] > FALCON_BASE_SUPPORT_MAX) return i;
+        }
+        return i;
+    }
+    *stats = (sdat_stats){0};
     for (i = 0; i < n; i++) {
         falcon_u72_limbs x;
+        int accepted;
         do {
             uint8_t b[FALCON_BASE_RANDOM_BYTES];
             if (randombytes(ctx, b, sizeof b)) return i;
-            x = falcon_u72_limbs_from_le9(b);
-            if (stats) {
-                stats->attempts++;
-                stats->random_bytes += sizeof b;
-                stats->random_bits += 72;
-                if (!falcon_u72_limbs_lt(x, q)) stats->rejections++;
-            }
-        } while (!falcon_u72_limbs_lt(x, q));
-        out[i] = map_sda(sda_reverse_coordinate(x));
+            x = decode_le9_inline(b);
+            accepted = sda_candidate_is_accepted(x);
+            stats->attempts++;
+            stats->random_bytes += sizeof b;
+            stats->random_bits += 72;
+            if (!accepted) stats->rejections++;
+        } while (!accepted);
+        out[i] = map_sda(x);
         if (out[i] > FALCON_BASE_SUPPORT_MAX) return i;
     }
     return i;
@@ -170,6 +205,74 @@ static int stage_map(uint32_t *out, const falcon_u72_limbs *candidates, size_t n
         if (out[i] > FALCON_BASE_SUPPORT_MAX) return -1;
     }
     return 0;
+}
+
+static size_t prepare_current_reflected(const uint8_t *raw, size_t raw_len,
+                                        falcon_u72_limbs *out, size_t n,
+                                        size_t *attempts) {
+    const falcon_u72_limbs q = falcon_gaussian0_sda_q_limbs();
+    size_t accepted = 0, pos = 0;
+    while (accepted < n && pos + FALCON_BASE_RANDOM_BYTES <= raw_len) {
+        falcon_u72_limbs x = falcon_u72_limbs_from_le9(raw + pos);
+        pos += FALCON_BASE_RANDOM_BYTES;
+        if (falcon_u72_limbs_lt(x, q)) out[accepted++] = sda_reverse_coordinate(x);
+    }
+    *attempts = pos / FALCON_BASE_RANDOM_BYTES;
+    return accepted;
+}
+
+static size_t prepare_direct_tail(const uint8_t *raw, size_t raw_len,
+                                  falcon_u72_limbs *out, size_t n, int optimized_compare,
+                                  int optimized_decode, size_t *attempts) {
+    const falcon_u72_limbs q = falcon_gaussian0_sda_q_limbs();
+    size_t accepted = 0, pos = 0;
+    while (accepted < n && pos + FALCON_BASE_RANDOM_BYTES <= raw_len) {
+        falcon_u72_limbs x = optimized_decode ? decode_le9_inline(raw + pos)
+                                               : falcon_u72_limbs_from_le9(raw + pos);
+        int accept = optimized_compare ? sda_candidate_is_accepted(x)
+                                       : falcon_u72_limbs_lt(x, q);
+        pos += FALCON_BASE_RANDOM_BYTES;
+        if (accept) out[accepted++] = x;
+    }
+    *attempts = pos / FALCON_BASE_RANDOM_BYTES;
+    return accepted;
+}
+
+size_t falcon_sda_input_prepare_for_audit(
+    falcon_sda_input_audit_variant variant, const uint8_t *raw, size_t raw_len,
+    falcon_u72_limbs *out, size_t n, size_t *attempts) {
+    size_t produced, used = 0;
+    if ((!raw && n) || (!out && n) || variant < FALCON_SDA_INPUT_CURRENT_REFLECTED
+            || variant > FALCON_SDA_INPUT_DIRECT_OPT_INPUT) return 0;
+    if (variant == FALCON_SDA_INPUT_CURRENT_REFLECTED)
+        produced = prepare_current_reflected(raw, raw_len, out, n, &used);
+    else
+        produced = prepare_direct_tail(raw, raw_len, out, n,
+            variant >= FALCON_SDA_INPUT_DIRECT_OPT_COMPARE,
+            variant >= FALCON_SDA_INPUT_DIRECT_OPT_INPUT, &used);
+    if (attempts) *attempts = used;
+    return produced;
+}
+
+size_t falcon_sda_sample_raw_for_audit(
+    falcon_sda_input_audit_variant variant, const uint8_t *raw, size_t raw_len,
+    uint32_t *out, size_t n, size_t *attempts) {
+    const falcon_u72_limbs q = falcon_gaussian0_sda_q_limbs();
+    size_t done = 0, pos = 0;
+    if ((!raw && n) || (!out && n) || variant < FALCON_SDA_INPUT_CURRENT_REFLECTED
+            || variant > FALCON_SDA_INPUT_DIRECT_OPT_INPUT) return 0;
+    while (done < n && pos + FALCON_BASE_RANDOM_BYTES <= raw_len) {
+        falcon_u72_limbs x = variant == FALCON_SDA_INPUT_DIRECT_OPT_INPUT
+            ? decode_le9_inline(raw + pos) : falcon_u72_limbs_from_le9(raw + pos);
+        int accept = variant >= FALCON_SDA_INPUT_DIRECT_OPT_COMPARE
+            ? sda_candidate_is_accepted(x) : falcon_u72_limbs_lt(x, q);
+        pos += FALCON_BASE_RANDOM_BYTES;
+        if (!accept) continue;
+        if (variant == FALCON_SDA_INPUT_CURRENT_REFLECTED) x = sda_reverse_coordinate(x);
+        out[done++] = map_sda(x);
+    }
+    if (attempts) *attempts = pos / FALCON_BASE_RANDOM_BYTES;
+    return done;
 }
 
 int falcon_original_block_staged_sample_n(
@@ -212,7 +315,6 @@ int falcon_sda_block_staged_sample_n(
     uint32_t *out, size_t n, const uint8_t *raw, size_t raw_len, size_t block,
     falcon_stage_workspace *workspace, sdat_stats *stats,
     falcon_stage_timing *timing) {
-    const falcon_u72_limbs q = falcon_gaussian0_sda_q_limbs();
     size_t done = 0, pos = 0;
     uint64_t outer0;
     if ((!out && n) || (!raw && n) || !workspace_ok(workspace, block)) return -1;
@@ -226,10 +328,9 @@ int falcon_sda_block_staged_sample_n(
         while (accepted < take) {
             falcon_u72_limbs x;
             if (pos + FALCON_BASE_RANDOM_BYTES > raw_len) return -2;
-            x = falcon_u72_limbs_from_le9(raw + pos);
+            x = decode_le9_inline(raw + pos);
             pos += FALCON_BASE_RANDOM_BYTES;
-            if (falcon_u72_limbs_lt(x, q))
-                workspace->candidates[accepted++] = sda_reverse_coordinate(x);
+            if (sda_candidate_is_accepted(x)) workspace->candidates[accepted++] = x;
         }
         uint64_t t1 = stage_mark(timing);
         if (stage_map(out + done, workspace->candidates, take,

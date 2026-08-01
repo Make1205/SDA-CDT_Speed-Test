@@ -1,6 +1,7 @@
 #include "falcon_base_sampler.h"
 #include "sdat_ref.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 typedef struct { const uint8_t *p; size_t n, pos; } bytes_ctx;
@@ -75,9 +76,9 @@ static int check_sda_boundaries(void) {
     const falcon_u72_limbs *tail = falcon_gaussian0_sda_reverse_tail_table();
     sdat_u72 q = sda_table_falcon_base.denominator_u72;
     uint32_t out = 99; int acc = -1;
-    if (falcon_sda_gaussian0_sample_from_u72((sdat_u72){0,0}, &out, &acc) || !acc || out != 0) return 20;
+    if (falcon_sda_gaussian0_sample_from_u72((sdat_u72){0,0}, &out, &acc) || !acc || out != 18) return 20;
     sdat_u72 qminus = sub1(q);
-    if (falcon_sda_gaussian0_sample_from_u72(qminus, &out, &acc) || !acc || out != 18) return 21;
+    if (falcon_sda_gaussian0_sample_from_u72(qminus, &out, &acc) || !acc || out != 0) return 21;
     if (falcon_sda_gaussian0_sample_from_u72(sda_table_falcon_base.denominator_u72, &out, &acc) || acc) return 22;
     if (falcon_sda_gaussian0_sample_from_u72((sdat_u72){UINT64_MAX,255}, &out, &acc) || acc) return 23;
     for (size_t i = 0; i < 18; i++) {
@@ -96,15 +97,18 @@ static int check_sda_boundaries(void) {
     if (sdat_u72_cmp(sub72(q, falcon_u72_limbs_to_sdat(tail[0])), p[0])) return 38;
     if (sdat_u72_cmp(falcon_u72_limbs_to_sdat(tail[17]), p[18])) return 39;
     if (sdat_u72_cmp(falcon_u72_limbs_to_sdat(tail[18]), (sdat_u72){0,0})) return 35;
-    /* The online input stage reflects the coordinate, so the new runtime
-     * representation remains pointwise identical to the old cumulative map. */
+    /* Direct and reflected coordinates induce the same exact interval masses;
+     * reflection is retained only to audit the legacy raw-input mapping. */
     sdat_u72 x = { 0x123456789abcdef0ULL, 42 };
     for (size_t i = 0; i < 100000; i++) {
         x.lo = x.lo * 6364136223846793005ULL + 1442695040888963407ULL;
         x.hi = (uint8_t)(x.hi * 73u + 19u);
         if (!sdat_u72_lt(x, q)) continue;
         if (falcon_sda_gaussian0_sample_from_u72(x, &out, &acc) || !acc) return 36;
-        if (out != falcon_sda_gaussian0_cumulative_lookup_for_test(x)) return 37;
+        if (out != falcon_gaussian0_reverse_tail_lookup(falcon_u72_limbs_from_sdat(x), tail)) return 37;
+        if (falcon_sda_gaussian0_reflected_lookup_for_test(x)
+                != falcon_sda_gaussian0_cumulative_lookup_for_test(x)) return 40;
+        if (out != falcon_sda_gaussian0_reflected_lookup_for_test(sub72(qminus, x))) return 41;
     }
     return 0;
 }
@@ -118,7 +122,7 @@ static int check_byte_order_and_rejection(void) {
     sdat_u72_to_le9(qminus, b + 18);
     bytes_ctx c = {b, sizeof b, 0}; uint32_t out = 99; sdat_stats st = {0};
     if (falcon_sda_gaussian0_sample(bytes_cb, &c, &out, &st)) return 30;
-    if (st.attempts != 3 || st.rejections != 2 || st.random_bits != 216 || st.random_bytes != 27 || out != 18) return 31;
+    if (st.attempts != 3 || st.rejections != 2 || st.random_bits != 216 || st.random_bytes != 27 || out != 0) return 31;
     uint8_t one[9] = {1,2,3,4,5,6,7,8,9}; sdat_u72 x = sdat_u72_from_le9(one); uint8_t back[9]; sdat_u72_to_le9(x, back);
     if (memcmp(one, back, 9)) return 32;
     bytes_ctx shortc = {one, 8, 0}; if (falcon_original_gaussian0_sample(bytes_cb, &shortc, &out, &st) == 0) return 33;
@@ -142,7 +146,14 @@ static int check_no_stats_equivalence(void) {
         if (memcmp(a, b, n * sizeof a[0])) return 54;
         if (c1.pos != c2.pos || st.random_bytes != c2.pos || st.random_bits != st.attempts * 72) return 55;
         if (st.rejections + n != st.attempts) return 56;
-        if (n == 1024 && falcon_base_checksum(a, n) != 16610768450925691870ULL) return 57;
+        if (n == 1024) {
+            size_t attempts = 0;
+            if (falcon_base_checksum(a, n) != 6644213135026016196ULL) return 57;
+            if (falcon_sda_sample_raw_for_audit(FALCON_SDA_INPUT_CURRENT_REFLECTED,
+                    buf, sizeof buf, b, n, &attempts) != n) return 58;
+            if (attempts != st.attempts
+                    || falcon_base_checksum(b, n) != 16610768450925691870ULL) return 59;
+        }
     }
     return 0;
 }
@@ -157,8 +168,9 @@ static int check_batch(void) {
 }
 
 static uint64_t stage_clock(void*ctx){uint64_t*v=ctx;*v+=19;return *v;}
+static int check_input_variants(void){const size_t n=1000000,raw_len=9*(n+20000);uint8_t*raw=malloc(raw_len);falcon_u72_limbs*a=malloc(n*sizeof*a),*b=malloc(n*sizeof*b);uint32_t*oa=malloc(n*sizeof*oa),*ob=malloc(n*sizeof*ob);if(!raw||!a||!b||!oa||!ob){free(raw);free(a);free(b);free(oa);free(ob);return 70;}for(size_t i=0;i<raw_len;i++)raw[i]=(uint8_t)(i*131u+(i>>9)*17u+29u);size_t aa=0,ab=0,ac=0,ad=0;if(falcon_sda_input_prepare_for_audit(FALCON_SDA_INPUT_CURRENT_REFLECTED,raw,raw_len,a,n,&aa)!=n)return 71;if(falcon_sda_input_prepare_for_audit(FALCON_SDA_INPUT_DIRECT_TAIL,raw,raw_len,b,n,&ab)!=n||aa!=ab)return 72;for(size_t i=0;i<n;i++){sdat_u72 x=falcon_u72_limbs_to_sdat(b[i]);if(falcon_sda_gaussian0_reflected_lookup_for_test(x)>18||falcon_gaussian0_reverse_tail_lookup(b[i],falcon_gaussian0_sda_reverse_tail_table())>18)return 73;}if(falcon_sda_input_prepare_for_audit(FALCON_SDA_INPUT_DIRECT_OPT_COMPARE,raw,raw_len,a,n,&ac)!=n||ac!=ab||memcmp(a,b,n*sizeof*a))return 74;if(falcon_sda_input_prepare_for_audit(FALCON_SDA_INPUT_DIRECT_OPT_INPUT,raw,raw_len,a,n,&ad)!=n||ad!=ab||memcmp(a,b,n*sizeof*a))return 75;if(falcon_sda_sample_raw_for_audit(FALCON_SDA_INPUT_CURRENT_REFLECTED,raw,raw_len,oa,n,&aa)!=n)return 76;if(falcon_base_checksum(oa,n)!=12305479392158838430ULL)return 77;if(falcon_sda_sample_raw_for_audit(FALCON_SDA_INPUT_DIRECT_TAIL,raw,raw_len,ob,n,&ab)!=n||aa!=ab)return 78;for(int v=FALCON_SDA_INPUT_DIRECT_OPT_COMPARE;v<=FALCON_SDA_INPUT_DIRECT_OPT_INPUT;v++){if(falcon_sda_sample_raw_for_audit((falcon_sda_input_audit_variant)v,raw,raw_len,oa,n,&ac)!=n||ac!=ab||memcmp(oa,ob,n*sizeof*oa))return 79;}free(raw);free(a);free(b);free(oa);free(ob);return 0;}
 static int check_block_staged(void){static uint8_t raw[9*20000];static uint32_t fused[7777],staged[7777],instrumented[7777];static falcon_u72_limbs candidates[8192];const size_t counts[]={1,4095,4096,4097,7777},blocks[]={8192,4096,4096,4096,257};for(unsigned seed=0;seed<4;seed++){for(size_t i=0;i<sizeof raw;i++)raw[i]=(uint8_t)(i*37u+seed*53u+11u);for(int kind=0;kind<2;kind++)for(size_t ci=0;ci<sizeof counts/sizeof counts[0];ci++){size_t n=counts[ci],block=blocks[ci];bytes_ctx c={raw,sizeof raw,0};sdat_stats fs={0},ss={0},is={0};size_t got=kind?falcon_sda_gaussian0_sample_n(bytes_cb,&c,fused,n,&fs):falcon_original_gaussian0_sample_n(bytes_cb,&c,fused,n,&fs);if(got!=n)return 60+kind;falcon_stage_workspace ws={candidates,8192};int rc=kind?falcon_sda_block_staged_sample_n(staged,n,raw,sizeof raw,block,&ws,&ss,0):falcon_original_block_staged_sample_n(staged,n,raw,sizeof raw,block,&ws,&ss,0);if(rc||memcmp(fused,staged,n*sizeof fused[0])||memcmp(&fs,&ss,sizeof fs))return 62+kind;uint64_t clock=0;falcon_stage_timing tm={stage_clock,&clock,0,0,0};rc=kind?falcon_sda_block_staged_sample_n(instrumented,n,raw,sizeof raw,block,&ws,&is,&tm):falcon_original_block_staged_sample_n(instrumented,n,raw,sizeof raw,block,&ws,&is,&tm);size_t nb=(n+block-1)/block;if(rc||memcmp(staged,instrumented,n*sizeof staged[0])||memcmp(&ss,&is,sizeof ss)||tm.input_cycles+tm.mapping_cycles!=38*nb||tm.outer_cycles!=19*(3*nb+1)||tm.outer_cycles<tm.input_cycles+tm.mapping_cycles)return 64+kind;for(size_t i=0;i<n;i++)if(staged[i]>FALCON_BASE_SUPPORT_MAX)return 66+kind;}}
-falcon_stage_workspace ws={candidates,8192};if(falcon_original_block_staged_sample_n(staged,1,raw,sizeof raw,0,&ws,0,0)!=-1||falcon_sda_block_staged_sample_n(staged,1,raw,sizeof raw,0,&ws,0,0)!=-1)return 68;sdat_u72 q=sda_table_falcon_base.denominator_u72,qm=sub1(q);sdat_u72_to_le9(q,raw);sdat_u72_to_le9(qm,raw+9);sdat_stats st={0};if(falcon_sda_block_staged_sample_n(staged,1,raw,18,1,&ws,&st,0)||st.attempts!=2||st.rejections!=1||st.random_bytes!=18||staged[0]!=18)return 69;return 0;}
+falcon_stage_workspace ws={candidates,8192};if(falcon_original_block_staged_sample_n(staged,1,raw,sizeof raw,0,&ws,0,0)!=-1||falcon_sda_block_staged_sample_n(staged,1,raw,sizeof raw,0,&ws,0,0)!=-1)return 68;sdat_u72 q=sda_table_falcon_base.denominator_u72,qm=sub1(q);sdat_u72_to_le9(q,raw);sdat_u72_to_le9(qm,raw+9);sdat_stats st={0};if(falcon_sda_block_staged_sample_n(staged,1,raw,18,1,&ws,&st,0)||st.attempts!=2||st.rejections!=1||st.random_bytes!=18||staged[0]!=0)return 69;return 0;}
 int main(void) {
     int r;
     if ((r = check_tables())) return r;
@@ -167,6 +179,7 @@ int main(void) {
     if ((r = check_byte_order_and_rejection())) return r;
     if ((r = check_batch())) return r;
     if ((r = check_no_stats_equivalence())) return r;
+    if ((r = check_input_variants())) return r;
     if ((r = check_block_staged())) return r;
     puts("falcon base sampler tests passed");
     return 0;

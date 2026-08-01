@@ -103,8 +103,8 @@ implementations consume the same precomputed stream of little-endian nine-byte c
 The mapping hot path decodes each value into Falcon's three 24-bit limbs (`v0` least
 significant through `v2` most significant). Original maps every 72-bit candidate through
 the official reverse-tail CDT. SDA compares the decoded candidate with its exact 72-bit q,
-rejects first, and maps only accepted candidates, so its production variant is
-`sda-falcon-reverse-tail-accept-before-map`.
+rejects first, and maps accepted candidates directly, so its production variant is
+`sda-direct-reverse-tail-optimized-input`.
 
 Both variants call the single compiled function
 `falcon_gaussian0_reverse_tail_lookup()`. It always executes the official fixed 19-row
@@ -112,15 +112,25 @@ subtraction-with-borrow loop; the last row is the zero threshold and never incre
 result. Original supplies the unchanged official table. SDA supplies 18 exact reverse
 tails `T_j = q - sum(p_0..p_{j-1})`, followed by the same zero row. Consequently the
 mapping instruction path and comparison semantics are identical; only the table pointer
-differs. SDA's input stage reflects an accepted uniform coordinate through `q-1` before
-storing/passing it to the reverse-tail mapper; this bijection makes the runtime mapping
-pointwise equivalent to the retained cumulative representation without changing q,
-rejection, distribution, or randomness accounting. The former cumulative SDA lookup
-remains test-only. Its canonical PMF hash is
+differs. No external KAT, wire format, standard vector, or caller in this repository
+requires compatibility with the former cumulative raw-input mapping. Production therefore
+passes each accepted candidate directly to the reverse-tail kernel. The old `q-1-x`
+reflection and cumulative lookup remain test-only compatibility oracles. Direct mapping is
+distribution-exact: output 0 occupies `[T1,q)`, output i occupies `[T(i+1),Ti)`, and output
+18 occupies `[0,T18)`, whose lengths are respectively `p0`, `pi`, and `p18`. Its canonical
+PMF hash is
 still `15cb40167eda4761313ad83a6779b4657a7340625dac863a48843822e5802caa`, while the
 runtime reverse-tail LE9 hash recorded in CSV is
 `2d6a6d7a65aa8c86c276f134e88dfce5df85d2486c1a4b4cc16cb79fb2ae6fcd` (the former
 runtime cumulative hash was `13996a00c89a842e899ed50451d75ade30c51850fc97329d1dd0e579bf373e02`).
+
+The bounded-input hot path decodes LE9 bytes directly into register-resident 24-bit limbs,
+uses a fixed-q high-limb-first comparison (the overwhelmingly common `v2 < q2` case), and
+writes an accepted struct once into the block workspace. The timed batch path is separate
+from the stats replay path: it contains no per-candidate stats branch, checksum, or replay.
+Four audit-only preparation variants remain callable by tests but are never emitted to the
+formal CSV: reflected/reference comparison, direct tail/reference comparison, direct tail
+with optimized comparison, and fully optimized direct input.
 
 Run only:
 

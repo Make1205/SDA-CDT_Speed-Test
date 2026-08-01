@@ -44,6 +44,7 @@ for q `{lo=10215721069833441392, hi=254}` before mapping. Both then call the sam
 least-to-most-significant subtraction/borrow chain. Original supplies the unchanged
 official table; SDA supplies exact reverse tails derived from the unchanged PMF and q,
 plus the official-style final zero row. Both paths produce only a nonnegative base
-magnitude. SDA reflects each accepted coordinate through `q-1` in its input stage, making
-the new reverse-tail runtime representation pointwise identical to the prior cumulative
-map. Sign handling and samplerZ are outside this benchmark.
+magnitude. SDA passes an accepted coordinate directly to the reverse-tail mapper. The old
+`q-1-x` coordinate reflection is retained only as a test oracle for the former cumulative
+raw-input mapping; it is not required for the exact PMF. Sign handling and samplerZ are
+outside this benchmark.
